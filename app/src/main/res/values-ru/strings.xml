@@ -27,7 +27,7 @@
     <string name="mode_proxy">Прокси</string>
     <string name="mode_proxy_desc">Всегда использовать встроенный пул бесплатных прокси</string>
     <string name="mode_vpn">VPN</string>
-    <string name="mode_vpn_desc">Настоящий VPN через бесплатный Cloudflare WARP — туннель для всего устройства</string>
+    <string name="mode_vpn_desc">Автоподбор SOCKS5-прокси из интернета и туннель всего трафика устройства</string>
     <string name="mirror_section_title">Ваше зеркало</string>
     <string name="mirror_switch_title">Зеркало</string>
     <string name="mirror_switch_desc">Открывать сайт через ваш Cloudflare Worker</string>
@@ -47,7 +47,11 @@
     <string name="status_connected_direct">Подключено напрямую</string>
     <string name="status_connected_mirror">Подключено через зеркало</string>
     <string name="status_connected_proxy">Подключено через прокси · %1$s</string>
-    <string name="status_connected_vpn">VPN · WARP подключён</string>
+    <string name="status_connected_vpn">VPN · SOCKS5 %1$s</string>
+    <string name="status_vpn_searching">Ищу SOCKS5-прокси…</string>
+    <string name="status_vpn_no_proxies">Рабочих SOCKS5-прокси не найдено. Повторите или настройте зеркало.</string>
+    <string name="status_vpn_error">Ошибка VPN: %1$s</string>
+    <string name="notif_vpn_text">VPN · туннель SOCKS5</string>
     <string name="vpn_denied">Разрешение на VPN отклонено</string>
     <string name="vpn_no_intent">Не удалось показать диалог разрешения VPN</string>
     <string name="status_connecting">Подключение…</string>

@@ -3,7 +3,6 @@ package ai.arena.test
 import ai.arena.webapp.vpn.Blake2s
 import ai.arena.webapp.vpn.ChaCha20Poly1305
 import ai.arena.webapp.vpn.Hkdf
-import ai.arena.webapp.vpn.TcpStack
 import ai.arena.webapp.vpn.WireGuardSession
 import ai.arena.webapp.vpn.X25519
 import java.util.Base64
@@ -51,7 +50,6 @@ object TestMain {
         testHkdfConsistency()
         testWireGuardHandshake()
         testWireGuardTransport()
-        testTcpStack()
         testDnsParse()
 
         println("========================================")
@@ -330,121 +328,10 @@ object TestMain {
         check("WG keepalive decrypt=empty", respDecrypt(ka!!)?.isEmpty() == true)
     }
 
-    // ------------------------------------------------------------ TCP stack
-
-    private fun testTcpStack() {
-        val warpAddr = byteArrayOf(172.toByte(), 16, 0, 2)
-        val devIp = byteArrayOf(10, 66, 66, 2)
-        val srvIp = byteArrayOf(104, 18, 15, 206.toByte())
-
-        val tunnelPackets = java.util.concurrent.ConcurrentLinkedQueue<ByteArray>()
-        val devicePackets = java.util.concurrent.ConcurrentLinkedQueue<ByteArray>()
-
-        val stack = TcpStack(
-            warpAddr,
-            { p -> tunnelPackets.add(p) },
-            { p -> devicePackets.add(p) }
-        )
-
-        // Устройство шлёт SYN
-        val synSeq = 1000
-        val syn = stack.buildTcpIp(
-            devIp, srvIp, 40000, 443, synSeq, 0,
-            TcpStack.TCP_SYN, stack.tcpOptions(1280), ByteArray(0)
-        )
-        stack.onDevicePacket(syn)
-
-        // SYN-ACK устройству?
-        val synAck = devicePackets.poll()
-        check("TCP device SYN-ACK", synAck != null)
-        val saIp = stack.parseIp(synAck!!)
-        val saSeg = stack.parseTcp(saIp!!.payload)
-        check(
-            "TCP SYN-ACK flags+ack",
-            saSeg != null &&
-                saSeg.flags and TcpStack.TCP_SYN != 0 &&
-                saSeg.flags and TcpStack.TCP_ACK != 0 &&
-                saSeg.ack == synSeq + 1
-        )
-        val devIsn = saSeg!!.seq
-
-        // SYN к серверу ушёл в туннель?
-        val synT = tunnelPackets.poll()
-        check("TCP server SYN", synT != null)
-        // узнаём наш эфемерный порт из отправленного SYN
-        val synTIp = stack.parseIp(synT!!)!!
-        val ourPort = synTIp.srcPort
-
-        // Сервер отвечает SYN-ACK (на наш порт)
-        val srvSynSeq = 5000
-        val srvSynAck = stack.buildTcpIp(
-            srvIp, warpAddr, 443, ourPort, srvSynSeq, 1000 + 1,
-            TcpStack.TCP_SYN or TcpStack.TCP_ACK, stack.tcpOptions(1280), ByteArray(0)
-        )
-        stack.onTunnelPacket(srvSynAck)
-        // ждём ACK серверу
-        var srvAck = tunnelPackets.poll()
-        var srvAckIp = stack.parseIp(srvAck!!)
-        var srvAckSeg = stack.parseTcp(srvAckIp!!.payload)
-        check(
-            "TCP server ACK",
-            srvAckSeg != null && srvAckSeg.flags and TcpStack.TCP_ACK != 0 &&
-                srvAckSeg.ack == srvSynSeq + 1
-        )
-
-        // Устройство ACK нашего SYN-ACK → ESTABLISHED
-        val devAck = stack.buildTcpIp(
-            devIp, srvIp, 40000, 443, synSeq + 1, devIsn + 1,
-            TcpStack.TCP_ACK, stack.tcpOptions(0), ByteArray(0)
-        )
-        stack.onDevicePacket(devAck)
-
-        // Устройство шлёт данные
-        val data1 = "GET / HTTP/1.1".toByteArray()
-        val devData = stack.buildTcpIp(
-            devIp, srvIp, 40000, 443, synSeq + 1, devIsn + 1,
-            TcpStack.TCP_PSH or TcpStack.TCP_ACK, stack.tcpOptions(0), data1
-        )
-        stack.onDevicePacket(devData)
-
-        // данные должны уйти в туннель
-        var found = false
-        while (true) {
-            val p = tunnelPackets.poll() ?: break
-            val ip = stack.parseIp(p) ?: continue
-            val seg = stack.parseTcp(ip.payload) ?: continue
-            if (seg.payload.isNotEmpty() && hex(seg.payload) == hex(data1)) {
-                found = true
-                break
-            }
-        }
-        check("TCP data device→server", found)
-
-        // Сервер шлёт данные
-        val data2 = "HTTP/1.1 200 OK".toByteArray()
-        val srvSeq2 = srvSynSeq + 1
-        val srvData = stack.buildTcpIp(
-            srvIp, warpAddr, 443, ourPort, srvSeq2, synSeq + 1 + data1.size,
-            TcpStack.TCP_PSH or TcpStack.TCP_ACK, stack.tcpOptions(0), data2
-        )
-        stack.onTunnelPacket(srvData)
-        var found2 = false
-        while (true) {
-            val p = devicePackets.poll() ?: break
-            val ip = stack.parseIp(p) ?: continue
-            val seg = stack.parseTcp(ip.payload) ?: continue
-            if (seg.payload.isNotEmpty() && hex(seg.payload) == hex(data2)) {
-                found2 = true
-                break
-            }
-        }
-        check("TCP data server→device", found2)
-    }
-
     // ------------------------------------------------------------- DNS parse
 
     private fun testDnsParse() {
-        val dns = ai.arena.webapp.vpn.DnsResolver({})
+        val dns = ai.arena.webapp.vpn.DnsResolver()
         // виртуальные IP
         val vip = dns.virtualIpFor("arena.ai")
         check("DNS virtual ip", dns.isVirtualIp(vip))

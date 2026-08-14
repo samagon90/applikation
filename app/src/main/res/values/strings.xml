@@ -29,7 +29,7 @@
     <string name="mode_proxy">Proxy</string>
     <string name="mode_proxy_desc">Always use built-in free proxy pool</string>
     <string name="mode_vpn">VPN</string>
-    <string name="mode_vpn_desc">Real VPN through free Cloudflare WARP — the whole device tunnel</string>
+    <string name="mode_vpn_desc">Auto-fetch SOCKS5 proxies from the internet and tunnel all device traffic</string>
     <string name="mirror_section_title">Your mirror</string>
     <string name="mirror_switch_title">Mirror</string>
     <string name="mirror_switch_desc">Route the site through your Cloudflare Worker</string>
@@ -49,7 +49,11 @@
     <string name="status_connected_direct">Connected directly</string>
     <string name="status_connected_mirror">Connected via mirror</string>
     <string name="status_connected_proxy">Connected via proxy · %1$s</string>
-    <string name="status_connected_vpn">VPN · WARP connected</string>
+    <string name="status_connected_vpn">VPN · SOCKS5 %1$s</string>
+    <string name="status_vpn_searching">Searching for SOCKS5 proxies…</string>
+    <string name="status_vpn_no_proxies">No working SOCKS5 proxies found. Try again or set up a mirror.</string>
+    <string name="status_vpn_error">VPN error: %1$s</string>
+    <string name="notif_vpn_text">VPN · SOCKS5 tunnel</string>
     <string name="vpn_denied">VPN permission denied</string>
     <string name="vpn_no_intent">Unable to show VPN permission dialog</string>
     <string name="status_connecting">Connecting…</string>

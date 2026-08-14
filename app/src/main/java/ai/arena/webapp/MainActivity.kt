@@ -693,7 +693,8 @@ class MainActivity : Activity(), ArenaWebChromeClient.Host, ProxyManager.Listene
         ProxyManager.Status.CONNECTED_MIRROR -> getString(R.string.status_connected_mirror)
         ProxyManager.Status.CONNECTED_PROXY ->
             getString(R.string.status_connected_proxy, state.detail)
-        ProxyManager.Status.CONNECTED_VPN -> getString(R.string.status_connected_vpn)
+        ProxyManager.Status.CONNECTED_VPN ->
+            getString(R.string.status_connected_vpn, state.detail)
         ProxyManager.Status.CHECKING -> getString(R.string.status_checking_proxy)
         ProxyManager.Status.FAILED -> getString(R.string.status_failed)
         ProxyManager.Status.IDLE -> getString(R.string.status_idle)

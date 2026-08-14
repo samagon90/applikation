@@ -7,6 +7,7 @@ import android.os.Handler
 import android.os.Looper
 import android.util.Log
 import ai.arena.webapp.vpn.ArenaVpnService
+import ai.arena.webapp.vpn.Socks5Client
 import java.io.BufferedReader
 import java.io.InputStreamReader
 import java.net.HttpURLConnection
@@ -77,6 +78,9 @@ class ProxyManager private constructor(context: Context) {
         private const val KEY_MIRROR_ENABLED = "mirror_enabled"
         private const val KEY_PROXY_CACHE = "proxy_cache"
         private const val KEY_PROXY_CACHE_TIME = "proxy_cache_time"
+        private const val KEY_SOCKS_CACHE = "socks_cache"
+        private const val KEY_SOCKS_CACHE_TIME = "socks_cache_time"
+        private const val SOCKS_CACHE_TTL_MS = 15 * 60 * 1000L
         private const val CACHE_TTL_MS = 30 * 60 * 1000L
         private const val MAX_CANDIDATES = 400
         private const val TEST_BATCH = 80
@@ -87,6 +91,13 @@ class ProxyManager private constructor(context: Context) {
             "https://cdn.jsdelivr.net/gh/TheSpeedX/PROXY-List@master/http.txt",
             "https://api.proxyscrape.com/v2/?request=getproxies&protocol=http&timeout=10000&country=all&ssl=all&anonymity=elite",
             "https://proxylist.geonode.com/api/proxy-list?limit=500&page=1&sort_by=lastChecked&sort_type=desc&protocols=http%2Chttps"
+        )
+
+        /** Публичные бесплатные списки SOCKS5-прокси (для встроенного VPN). */
+        private val SOCKS_SOURCES = listOf(
+            "https://cdn.jsdelivr.net/gh/TheSpeedX/PROXY-List@master/socks5.txt",
+            "https://api.proxyscrape.com/v2/?request=getproxies&protocol=socks5&timeout=10000&country=all",
+            "https://proxylist.geonode.com/api/proxy-list?limit=500&page=1&sort_by=lastChecked&sort_type=desc&protocols=socks5"
         )
 
         @Volatile
@@ -380,6 +391,105 @@ class ProxyManager private constructor(context: Context) {
         }
     }
 
+    // ------------------------------------------------------------ SOCKS pool
+
+    /** Пул рабочих SOCKS5 для VPN (кэш или загрузка+проверка). */
+    fun getSocksPool(): List<Candidate> {
+        val cached = cachedSocks()
+        if (cached.isNotEmpty()) return cached
+        return fetchAndTestSocks()
+    }
+
+    /** Обновить SOCKS-пул в фоне. */
+    fun refreshSocksPool(onDone: ((List<Candidate>) -> Unit)? = null) {
+        executor.execute {
+            val list = try {
+                fetchAndTestSocks()
+            } catch (t: Throwable) {
+                Log.w(TAG, "refreshSocksPool failed", t)
+                emptyList()
+            }
+            onDone?.let { mainHandler.post { it(list) } }
+        }
+    }
+
+    private fun cachedSocks(): List<Candidate> {
+        val age = System.currentTimeMillis() - prefs.getLong(KEY_SOCKS_CACHE_TIME, 0L)
+        if (age > SOCKS_CACHE_TTL_MS) return emptyList()
+        return prefs.getString(KEY_SOCKS_CACHE, "").orEmpty()
+            .split("\n")
+            .mapNotNull { Candidate.parse(it) }
+            .takeIf { it.isNotEmpty() } ?: emptyList()
+    }
+
+    private fun saveSocks(list: List<Candidate>) {
+        if (list.isEmpty()) return
+        prefs.edit()
+            .putString(KEY_SOCKS_CACHE, list.take(12).joinToString("\n") { it.address })
+            .putLong(KEY_SOCKS_CACHE_TIME, System.currentTimeMillis())
+            .apply()
+    }
+
+    private fun fetchAndTestSocks(): List<Candidate> {
+        val fetched = fetchCandidatesFrom(SOCKS_SOURCES)
+        if (fetched.isEmpty()) return emptyList()
+        val alive = testSocks(fetched)
+        saveSocks(alive)
+        return alive
+    }
+
+    /**
+     * Проверка SOCKS5: TCP до прокси + SOCKS5-хендшейк + CONNECT arena.ai:443
+     * + TLS-хендшейк через туннель. Остаются только реально рабочие.
+     */
+    private fun testSocks(list: List<Candidate>, limit: Int = 5): List<Candidate> {
+        val results = java.util.Collections.synchronizedList(mutableListOf<Candidate>())
+        val tested = list.take(TEST_BATCH)
+        val latch = CountDownLatch(tested.size)
+        val pool = Executors.newFixedThreadPool(HEALTH_THREADS)
+        try {
+            for (candidate in tested) {
+                pool.execute {
+                    try {
+                        val latency = checkSocks(candidate)
+                        if (latency > 0) results += candidate.copy(latencyMs = latency)
+                    } catch (_: Throwable) {
+                    } finally {
+                        latch.countDown()
+                    }
+                }
+            }
+            latch.await(12, TimeUnit.SECONDS)
+        } finally {
+            pool.shutdownNow()
+        }
+        return results.sortedWith(Comparator { a, b -> a.latencyMs.compareTo(b.latencyMs) })
+            .take(limit)
+    }
+
+    private fun checkSocks(candidate: Candidate): Long {
+        val started = System.currentTimeMillis()
+        val client = Socks5Client(candidate.host, candidate.port)
+        val socket = client.connect(ARENA_HOST, 443, 5000) ?: return -1L
+        return try {
+            val sslContext = SSLContext.getInstance("TLS")
+            sslContext.init(null, null, null)
+            val ssl = sslContext.socketFactory
+                .createSocket(socket, ARENA_HOST, 443, true) as SSLSocket
+            ssl.soTimeout = 5000
+            val params = ssl.sslParameters
+            params.serverNames = listOf(SNIHostName(ARENA_HOST))
+            ssl.sslParameters = params
+            ssl.startHandshake()
+            ssl.close()
+            System.currentTimeMillis() - started
+        } catch (_: Throwable) {
+            -1L
+        } finally {
+            runCatching { socket.close() }
+        }
+    }
+
     /** Скачать свежий пул и проверить его (для UI-кнопки «Проверить прокси»). */
     fun refreshPool(onDone: ((workingCount: Int) -> Unit)? = null) {
         executor.execute {
@@ -421,9 +531,11 @@ class ProxyManager private constructor(context: Context) {
         return alive
     }
 
-    private fun fetchCandidates(): List<Candidate> {
+    private fun fetchCandidates(): List<Candidate> = fetchCandidatesFrom(PROXY_SOURCES)
+
+    private fun fetchCandidatesFrom(sources: List<String>): List<Candidate> {
         val seen = LinkedHashSet<String>()
-        for (source in PROXY_SOURCES) {
+        for (source in sources) {
             try {
                 val conn = URL(source).openConnection(Proxy.NO_PROXY) as HttpURLConnection
                 conn.connectTimeout = 8000
