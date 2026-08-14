@@ -160,7 +160,7 @@ scripts/
   offline_toolchain.md       — как добыть инструменты для оффлайн-сборки
   fix_inner_classes/         — починка InnerClasses в jar из DEX (для android.jar)
 dist/
-  ArenaAI-release.apk        — готовый подписанный APK v2.0.0
+  ArenaAI-release.apk        — готовый подписанный APK v2.0.1
   ArenaAI-v1.0.0.apk         — APK прошлой версии
 ```
 
