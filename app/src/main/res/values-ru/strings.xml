@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="offline_title">Нет подключения</string>
+    <string name="offline_message">Проверьте подключение к интернету и попробуйте ещё раз.</string>
+    <string name="retry">Повторить</string>
+    <string name="still_offline">Интернет по-прежнему недоступен</string>
+    <string name="no_app_for_link">Нет приложения для открытия этой ссылки</string>
+    <string name="choose_file">Выберите файл</string>
+    <string name="no_file_picker">Нет приложения для выбора файла</string>
+    <string name="download_started">Скачивание %1$s</string>
+</resources>

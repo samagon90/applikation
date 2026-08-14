@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name" translatable="false">Arena AI</string>
+    <string name="offline_title">No connection</string>
+    <string name="offline_message">Check your internet connection and try again.</string>
+    <string name="retry">Retry</string>
+    <string name="still_offline">Still no internet connection</string>
+    <string name="no_app_for_link">No app found to open this link</string>
+    <string name="choose_file">Choose a file</string>
+    <string name="no_file_picker">No file picker available</string>
+    <string name="download_started">Downloading %1$s</string>
+</resources>
