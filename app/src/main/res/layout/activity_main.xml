@@ -5,6 +5,7 @@
     android:layout_height="match_parent"
     android:background="@color/window_background">
 
+    <!-- WebView -->
     <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
         android:id="@+id/swipe_refresh"
         android:layout_width="match_parent"
@@ -13,9 +14,56 @@
         <WebView
             android:id="@+id/web_view"
             android:layout_width="match_parent"
-            android:layout_height="match_parent" />
+            android:layout_height="match_parent"
+            android:background="@color/window_background" />
     </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
 
+    <!-- Тонкий градиентный прогресс-бар -->
+    <View
+        android:id="@+id/progress_bar"
+        android:layout_width="120dp"
+        android:layout_height="3dp"
+        android:layout_gravity="top|start"
+        android:background="@drawable/bg_progress_gradient"
+        android:alpha="0" />
+
+    <!-- Чип статуса подключения -->
+    <LinearLayout
+        android:id="@+id/connection_chip"
+        android:layout_width="wrap_content"
+        android:layout_height="36dp"
+        android:layout_gravity="top|end"
+        android:layout_marginTop="8dp"
+        android:layout_marginEnd="12dp"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingStart="12dp"
+        android:paddingEnd="12dp"
+        android:background="@drawable/bg_chip"
+        android:elevation="4dp"
+        android:clickable="true"
+        android:focusable="true"
+        android:foreground="?android:attr/selectableItemBackground"
+        android:visibility="gone">
+
+        <ImageView
+            android:id="@+id/chip_icon"
+            android:layout_width="16dp"
+            android:layout_height="16dp"
+            android:src="@drawable/ic_shield"
+            android:importantForAccessibility="no" />
+
+        <TextView
+            android:id="@+id/chip_text"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="6dp"
+            android:textColor="@color/text_secondary"
+            android:textSize="12sp"
+            android:text="@string/mode_direct" />
+    </LinearLayout>
+
+    <!-- Оффлайн-экран -->
     <LinearLayout
         android:id="@+id/offline_view"
         android:layout_width="match_parent"
@@ -23,39 +71,394 @@
         android:background="@color/window_background"
         android:gravity="center"
         android:orientation="vertical"
-        android:padding="32dp"
+        android:paddingStart="36dp"
+        android:paddingEnd="36dp"
+        android:paddingBottom="120dp"
         android:visibility="gone">
 
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/offline_title"
-            android:textColor="@color/text_primary"
-            android:textSize="20sp"
-            android:textStyle="bold" />
+        <FrameLayout
+            android:layout_width="104dp"
+            android:layout_height="104dp"
+            android:layout_gravity="center_horizontal">
+
+            <View
+                android:layout_width="104dp"
+                android:layout_height="104dp"
+                android:layout_gravity="center"
+                android:background="@drawable/bg_icon_ring" />
+
+            <ImageView
+                android:layout_width="46dp"
+                android:layout_height="46dp"
+                android:layout_gravity="center"
+                android:src="@drawable/ic_globe_off"
+                android:tint="@color/brand"
+                android:importantForAccessibility="no" />
+        </FrameLayout>
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
+            android:layout_marginTop="28dp"
+            android:text="@string/offline_title"
+            android:textColor="@color/text_primary"
+            android:textSize="22sp"
+            android:textStyle="bold"
+            android:letterSpacing="0.01" />
+
+        <TextView
+            android:id="@+id/offline_message"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
             android:gravity="center"
+            android:lineSpacingExtra="2dp"
             android:text="@string/offline_message"
             android:textColor="@color/text_secondary"
             android:textSize="15sp" />
 
+        <TextView
+            android:id="@+id/offline_hint"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="18dp"
+            android:gravity="center"
+            android:lineSpacingExtra="2dp"
+            android:text="@string/offline_hint"
+            android:textColor="@color/text_tertiary"
+            android:textSize="13sp"
+            android:visibility="gone" />
+
         <Button
             android:id="@+id/retry_button"
             android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="24dp"
-            android:minWidth="160dp"
-            android:text="@string/retry" />
+            android:layout_height="52dp"
+            android:layout_marginTop="28dp"
+            android:minWidth="200dp"
+            android:paddingStart="32dp"
+            android:paddingEnd="32dp"
+            android:background="@drawable/bg_button_primary"
+            android:stateListAnimator="@null"
+            android:text="@string/retry"
+            android:textAllCaps="false"
+            android:textColor="@color/text_on_accent"
+            android:textSize="15sp"
+            android:textStyle="bold" />
+
+        <Button
+            android:id="@+id/open_connection_button"
+            android:layout_width="wrap_content"
+            android:layout_height="48dp"
+            android:layout_marginTop="14dp"
+            android:minWidth="200dp"
+            android:paddingStart="28dp"
+            android:paddingEnd="28dp"
+            android:background="@drawable/bg_button_ghost"
+            android:stateListAnimator="@null"
+            android:text="@string/connection_methods"
+            android:textAllCaps="false"
+            android:textColor="@color/brand"
+            android:textSize="14sp"
+            android:textStyle="bold" />
     </LinearLayout>
 
+    <!-- Плавающая панель навигации (glass pill) -->
+    <LinearLayout
+        android:id="@+id/bottom_bar"
+        android:layout_width="wrap_content"
+        android:layout_height="56dp"
+        android:layout_gravity="bottom|center_horizontal"
+        android:layout_marginBottom="14dp"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingStart="8dp"
+        android:paddingEnd="8dp"
+        android:background="@drawable/bg_pill"
+        android:elevation="10dp">
+
+        <ImageButton
+            android:id="@+id/btn_back"
+            android:layout_width="44dp"
+            android:layout_height="44dp"
+            android:background="?android:attr/selectableItemBackgroundBorderless"
+            android:src="@drawable/ic_nav_back"
+            android:tint="@color/text_secondary"
+            android:scaleType="centerInside"
+            android:contentDescription="@string/nav_back" />
+
+        <ImageButton
+            android:id="@+id/btn_refresh"
+            android:layout_width="44dp"
+            android:layout_height="44dp"
+            android:background="?android:attr/selectableItemBackgroundBorderless"
+            android:src="@drawable/ic_nav_refresh"
+            android:tint="@color/text_secondary"
+            android:scaleType="centerInside"
+            android:contentDescription="@string/nav_refresh" />
+
+        <ImageButton
+            android:id="@+id/btn_forward"
+            android:layout_width="44dp"
+            android:layout_height="44dp"
+            android:background="?android:attr/selectableItemBackgroundBorderless"
+            android:src="@drawable/ic_nav_forward"
+            android:tint="@color/text_secondary"
+            android:scaleType="centerInside"
+            android:contentDescription="@string/nav_forward" />
+
+        <View
+            android:layout_width="1dp"
+            android:layout_height="24dp"
+            android:layout_marginStart="2dp"
+            android:layout_marginEnd="2dp"
+            android:background="@color/pill_stroke" />
+
+        <ImageButton
+            android:id="@+id/btn_external"
+            android:layout_width="44dp"
+            android:layout_height="44dp"
+            android:background="?android:attr/selectableItemBackgroundBorderless"
+            android:src="@drawable/ic_nav_external"
+            android:tint="@color/text_secondary"
+            android:scaleType="centerInside"
+            android:contentDescription="@string/nav_external" />
+    </LinearLayout>
+
+    <!-- Полноэкранное видео -->
     <FrameLayout
         android:id="@+id/fullscreen_container"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:background="@android:color/black"
         android:visibility="gone" />
+
+    <!-- Шторка «Подключение» -->
+    <FrameLayout
+        android:id="@+id/sheet_root"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:visibility="gone">
+
+        <View
+            android:id="@+id/sheet_scrim"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="@color/scrim"
+            android:alpha="0"
+            android:clickable="true"
+            android:focusable="true" />
+
+        <ScrollView
+            android:id="@+id/sheet_panel"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_gravity="bottom"
+            android:background="@drawable/bg_sheet"
+            android:elevation="24dp"
+            android:fillViewport="false"
+            android:overScrollMode="never">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:paddingStart="24dp"
+                android:paddingEnd="24dp"
+                android:paddingBottom="28dp">
+
+                <View
+                    android:layout_width="36dp"
+                    android:layout_height="4dp"
+                    android:layout_gravity="center_horizontal"
+                    android:layout_marginTop="12dp"
+                    android:background="@drawable/bg_handle" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="20dp"
+                    android:text="@string/sheet_title"
+                    android:textColor="@color/text_primary"
+                    android:textSize="19sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/sheet_status"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="13sp" />
+
+                <!-- Авто -->
+                <LinearLayout
+                    android:id="@+id/row_mode_auto"
+                    style="@style/ConnectionRow"
+                    android:layout_marginTop="18dp">
+
+                    <ImageView style="@style/ConnectionRowIcon" android:src="@drawable/ic_bolt" />
+
+                    <LinearLayout style="@style/ConnectionRowTexts">
+                        <TextView style="@style/ConnectionRowTitle" android:text="@string/mode_auto" />
+                        <TextView style="@style/ConnectionRowSubtitle" android:text="@string/mode_auto_desc" />
+                    </LinearLayout>
+
+                    <ImageView
+                        android:id="@+id/check_auto"
+                        android:layout_width="22dp"
+                        android:layout_height="22dp"
+                        android:layout_gravity="center_vertical"
+                        android:src="@drawable/ic_check"
+                        android:tint="@color/brand"
+                        android:importantForAccessibility="no" />
+                </LinearLayout>
+
+                <!-- Напрямую -->
+                <LinearLayout
+                    android:id="@+id/row_mode_direct"
+                    style="@style/ConnectionRow">
+
+                    <ImageView style="@style/ConnectionRowIcon" android:src="@drawable/ic_shield" />
+
+                    <LinearLayout style="@style/ConnectionRowTexts">
+                        <TextView style="@style/ConnectionRowTitle" android:text="@string/mode_direct" />
+                        <TextView style="@style/ConnectionRowSubtitle" android:text="@string/mode_direct_desc" />
+                    </LinearLayout>
+
+                    <ImageView
+                        android:id="@+id/check_direct"
+                        android:layout_width="22dp"
+                        android:layout_height="22dp"
+                        android:layout_gravity="center_vertical"
+                        android:src="@drawable/ic_check"
+                        android:tint="@color/brand"
+                        android:importantForAccessibility="no" />
+                </LinearLayout>
+
+                <!-- Зеркало -->
+                <LinearLayout
+                    android:id="@+id/row_mode_mirror"
+                    style="@style/ConnectionRow">
+
+                    <ImageView style="@style/ConnectionRowIcon" android:src="@drawable/ic_mirror" />
+
+                    <LinearLayout style="@style/ConnectionRowTexts">
+                        <TextView style="@style/ConnectionRowTitle" android:text="@string/mode_mirror" />
+                        <TextView style="@style/ConnectionRowSubtitle" android:text="@string/mode_mirror_desc" />
+                    </LinearLayout>
+
+                    <ImageView
+                        android:id="@+id/check_mirror"
+                        android:layout_width="22dp"
+                        android:layout_height="22dp"
+                        android:layout_gravity="center_vertical"
+                        android:src="@drawable/ic_check"
+                        android:tint="@color/brand"
+                        android:importantForAccessibility="no" />
+                </LinearLayout>
+
+                <!-- Прокси -->
+                <LinearLayout
+                    android:id="@+id/row_mode_proxy"
+                    style="@style/ConnectionRow">
+
+                    <ImageView style="@style/ConnectionRowIcon" android:src="@drawable/ic_proxy" />
+
+                    <LinearLayout style="@style/ConnectionRowTexts">
+                        <TextView style="@style/ConnectionRowTitle" android:text="@string/mode_proxy" />
+                        <TextView style="@style/ConnectionRowSubtitle" android:text="@string/mode_proxy_desc" />
+                    </LinearLayout>
+
+                    <ImageView
+                        android:id="@+id/check_proxy"
+                        android:layout_width="22dp"
+                        android:layout_height="22dp"
+                        android:layout_gravity="center_vertical"
+                        android:src="@drawable/ic_check"
+                        android:tint="@color/brand"
+                        android:importantForAccessibility="no" />
+                </LinearLayout>
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:layout_marginTop="18dp"
+                    android:background="@color/pill_stroke" />
+
+                <!-- Секция зеркала -->
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="18dp"
+                    android:text="@string/mirror_section_title"
+                    android:textColor="@color/text_primary"
+                    android:textSize="15sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:lineSpacingExtra="2dp"
+                    android:text="@string/mirror_section_hint"
+                    android:textColor="@color/text_tertiary"
+                    android:textSize="12sp" />
+
+                <EditText
+                    android:id="@+id/mirror_url_input"
+                    android:layout_width="match_parent"
+                    android:layout_height="50dp"
+                    android:layout_marginTop="12dp"
+                    android:background="@drawable/bg_edit"
+                    android:hint="@string/mirror_url_hint"
+                    android:textColorHint="@color/text_tertiary"
+                    android:textColor="@color/text_primary"
+                    android:textSize="14sp"
+                    android:inputType="textUri"
+                    android:maxLines="1"
+                    android:paddingStart="16dp"
+                    android:paddingEnd="16dp"
+                    android:importantForAutofill="no" />
+
+                <Button
+                    android:id="@+id/btn_save_mirror"
+                    android:layout_width="wrap_content"
+                    android:layout_height="44dp"
+                    android:layout_marginTop="10dp"
+                    android:paddingStart="24dp"
+                    android:paddingEnd="24dp"
+                    android:background="@drawable/bg_button_primary"
+                    android:stateListAnimator="@null"
+                    android:text="@string/mirror_save"
+                    android:textAllCaps="false"
+                    android:textColor="@color/text_on_accent"
+                    android:textSize="14sp"
+                    android:textStyle="bold" />
+
+                <!-- Статус прокси-пула -->
+                <TextView
+                    android:id="@+id/proxy_status_text"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="20dp"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="13sp" />
+
+                <Button
+                    android:id="@+id/btn_test_proxies"
+                    android:layout_width="wrap_content"
+                    android:layout_height="44dp"
+                    android:layout_marginTop="10dp"
+                    android:paddingStart="24dp"
+                    android:paddingEnd="24dp"
+                    android:background="@drawable/bg_button_ghost"
+                    android:stateListAnimator="@null"
+                    android:text="@string/proxy_test"
+                    android:textAllCaps="false"
+                    android:textColor="@color/brand"
+                    android:textSize="14sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+        </ScrollView>
+    </FrameLayout>
 </FrameLayout>

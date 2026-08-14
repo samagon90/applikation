@@ -1,9 +1,51 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="offline_title">Нет подключения</string>
-    <string name="offline_message">Проверьте подключение к интернету и попробуйте ещё раз.</string>
+    <!-- Оффлайн-экран -->
+    <string name="offline_title">Не удаётся открыть Arena</string>
+    <string name="offline_message">Проверьте интернет или смените способ подключения.</string>
+    <string name="offline_hint">Похоже, сайт недоступен из вашей сети. Включите встроенный прокси или зеркало.</string>
     <string name="retry">Повторить</string>
     <string name="still_offline">Интернет по-прежнему недоступен</string>
+    <string name="connection_methods">Способы подключения</string>
+
+    <!-- Навигация -->
+    <string name="nav_back">Назад</string>
+    <string name="nav_refresh">Обновить</string>
+    <string name="nav_forward">Вперёд</string>
+    <string name="nav_external">Открыть в браузере</string>
+
+    <!-- Шторка подключения -->
+    <string name="sheet_title">Подключение</string>
+    <string name="mode_auto">Авто</string>
+    <string name="mode_auto_desc">Напрямую; если сайт недоступен — прокси или зеркало включаются сами</string>
+    <string name="mode_direct">Напрямую</string>
+    <string name="mode_direct_desc">Всегда подключаться напрямую, без прокси</string>
+    <string name="mode_mirror">Зеркало</string>
+    <string name="mode_mirror_desc">Через собственное зеркало (бесплатный Cloudflare Worker)</string>
+    <string name="mode_proxy">Прокси</string>
+    <string name="mode_proxy_desc">Всегда использовать встроенный пул бесплатных прокси</string>
+    <string name="mirror_section_title">Ваше зеркало</string>
+    <string name="mirror_section_hint">Бесплатно и надёжнее всего: разверните скрипт из репозитория приложения (папка mirror/) в Cloudflare и вставьте сюда его URL.</string>
+    <string name="mirror_url_hint">https://your-worker.workers.dev</string>
+    <string name="mirror_save">Сохранить зеркало</string>
+    <string name="mirror_saved">Зеркало сохранено</string>
+    <string name="mirror_invalid">Введите корректный URL, например https://example.workers.dev</string>
+    <string name="mirror_empty">Сначала добавьте URL зеркала</string>
+    <string name="proxy_test">Проверить прокси</string>
+    <string name="proxy_testing">Проверяю пул прокси…</string>
+    <string name="proxy_test_result">Рабочих прокси найдено: %1$d</string>
+    <string name="proxy_test_none">Рабочих прокси не найдено. Повторите или настройте зеркало.</string>
+
+    <!-- Статусы -->
+    <string name="status_connected_direct">Подключено напрямую</string>
+    <string name="status_connected_mirror">Подключено через зеркало</string>
+    <string name="status_connected_proxy">Подключено через прокси · %1$s</string>
+    <string name="status_connecting">Подключение…</string>
+    <string name="status_checking_proxy">Ищу прокси…</string>
+    <string name="status_failed">Нет соединения</string>
+    <string name="status_idle">Ожидание</string>
+
+    <!-- Прочее -->
     <string name="no_app_for_link">Нет приложения для открытия этой ссылки</string>
     <string name="choose_file">Выберите файл</string>
     <string name="no_file_picker">Нет приложения для выбора файла</string>

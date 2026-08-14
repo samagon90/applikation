@@ -1,8 +1,32 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="brand">#1A1A2E</color>
-    <color name="brand_accent">#E94560</color>
-    <color name="window_background">#FFFFFF</color>
-    <color name="text_primary">#111111</color>
-    <color name="text_secondary">#666666</color>
+    <!-- Brand -->
+    <color name="brand">#4F46E5</color>
+    <color name="brand_violet">#7C3AED</color>
+    <color name="brand_cyan">#22D3EE</color>
+
+    <!-- Surfaces (light) -->
+    <color name="window_background">#F6F7F9</color>
+    <color name="surface">#FFFFFF</color>
+    <color name="surface_pill">#F2FFFFFF</color>
+    <color name="pill_stroke">#1F000000</color>
+    <color name="input_bg">#FFFFFF</color>
+    <color name="input_stroke">#1F000000</color>
+    <color name="icon_ring_bg">#1F4F46E5</color>
+    <color name="scrim">#52000000</color>
+    <color name="handle">#33000000</color>
+
+    <!-- Text -->
+    <color name="text_primary">#111318</color>
+    <color name="text_secondary">#5B5F6A</color>
+    <color name="text_tertiary">#8A8F9C</color>
+    <color name="text_on_accent">#FFFFFF</color>
+
+    <!-- Status -->
+    <color name="status_ok">#16A34A</color>
+    <color name="status_warn">#D97706</color>
+    <color name="status_err">#DC2626</color>
+
+    <!-- Splash -->
+    <color name="splash_background">#F6F7F9</color>
 </resources>

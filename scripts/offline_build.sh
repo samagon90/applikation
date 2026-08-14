@@ -27,9 +27,13 @@ APKSIGNER_JAR="$BUILD_TOOLS/lib/apksigner.jar"
 
 MIN_SDK=24
 TARGET_SDK=35
-VERSION_CODE=1
-VERSION_NAME="1.0.0"
+VERSION_CODE=2
+VERSION_NAME="2.0.0"
 APP_ID="ai.arena.webapp"
+
+# Примечание: для сборки v2 нужен AAR androidx.webkit (ProxyController),
+# извлечённый в LIBS_DIR, как и остальные библиотеки:
+#   ext/webkit/{classes.jar,res,AndroidManifest.xml}
 
 rm -rf "$OUT" && mkdir -p "$OUT"/{flat,gen,classes,dex,apk} "$APK_DIR" "$DIST"
 

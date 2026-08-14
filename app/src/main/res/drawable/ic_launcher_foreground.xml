@@ -1,14 +1,20 @@
 <?xml version="1.0" encoding="utf-8"?>
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
-    android:width="108dp"
-    android:height="108dp"
-    android:viewportWidth="108"
-    android:viewportHeight="108">
-    <!-- Буква A -->
-    <path
-        android:fillColor="#FFFFFF"
-        android:pathData="M54,30 L72,78 L63.5,78 L59.5,66 L48.5,66 L44.5,78 L36,78 Z M54,45.5 L50.7,59.5 L57.3,59.5 Z" />
-    <path
-        android:fillColor="#E94560"
-        android:pathData="M44,71 L64,71 L64,74.5 L44,74.5 Z" />
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="108dp" android:height="108dp"
+    android:viewportWidth="108" android:viewportHeight="108">
+    <!-- Современная «A» с градиентом indigo -> cyan -->
+    <path android:pathData="M54,30 L72,78 L62.4,78 L58.4,66.2 L49.6,66.2 L45.6,78 L36,78 Z M54,44.8 L51.3,60.4 L56.7,60.4 Z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:startX="36" android:startY="30"
+                android:endX="72" android:endY="78"
+                android:startColor="#6366F1"
+                android:endColor="#22D3EE"
+                android:type="linear"/>
+        </aapt:attr>
+    </path>
+    <!-- Искра -->
+    <path android:fillColor="#FFFFFF"
+        android:pathData="M72.5,34.5 l2.1,4.6 4.6,2.1 -4.6,2.1 -2.1,4.6 -2.1,-4.6 -4.6,-2.1 4.6,-2.1 z"/>
 </vector>

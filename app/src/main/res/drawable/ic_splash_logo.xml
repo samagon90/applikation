@@ -1,14 +1,31 @@
 <?xml version="1.0" encoding="utf-8"?>
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
-    android:width="108dp"
-    android:height="108dp"
-    android:viewportWidth="108"
-    android:viewportHeight="108">
-    <!-- Буква A -->
-    <path
-        android:fillColor="#FFFFFF"
-        android:pathData="M54,26 L74,82 L64.5,82 L60,68 L48,68 L43.5,82 L34,82 Z M54,44 L50.2,61 L57.8,61 Z" />
-    <path
-        android:fillColor="#E94560"
-        android:pathData="M42,74 L66,74 L66,78 L42,78 Z" />
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="108dp" android:height="108dp"
+    android:viewportWidth="108" android:viewportHeight="108">
+    <!-- Плитка с тёмным градиентом -->
+    <path android:pathData="M28,28 h52 a8,8 0 0 1 8,8 v36 a8,8 0 0 1 -8,8 h-52 a8,8 0 0 1 -8,-8 v-36 a8,8 0 0 1 8,-8 z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:startX="28" android:startY="28"
+                android:endX="88" android:endY="88"
+                android:startColor="#14162B"
+                android:endColor="#1B1440"
+                android:type="linear"/>
+        </aapt:attr>
+    </path>
+    <!-- Буква A с градиентом -->
+    <path android:pathData="M54,40 L66,72 L60,72 L57.5,64.6 L50.5,64.6 L48,72 L42,72 Z M54,49.4 L52.3,59.6 L55.7,59.6 Z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:startX="42" android:startY="40"
+                android:endX="66" android:endY="72"
+                android:startColor="#6366F1"
+                android:endColor="#22D3EE"
+                android:type="linear"/>
+        </aapt:attr>
+    </path>
+    <!-- Искра -->
+    <path android:fillColor="#FFFFFF"
+        android:pathData="M66,42 l1.7,3.7 3.7,1.7 -3.7,1.7 -1.7,3.7 -1.7,-3.7 -3.7,-1.7 3.7,-1.7 z"/>
 </vector>

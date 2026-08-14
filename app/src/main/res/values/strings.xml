@@ -1,10 +1,53 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name" translatable="false">Arena AI</string>
-    <string name="offline_title">No connection</string>
-    <string name="offline_message">Check your internet connection and try again.</string>
+
+    <!-- Offline screen -->
+    <string name="offline_title">Can’t reach Arena</string>
+    <string name="offline_message">Check your internet connection, or switch the connection method.</string>
+    <string name="offline_hint">The site may be blocked by your network. Try the built-in proxy or a mirror.</string>
     <string name="retry">Retry</string>
     <string name="still_offline">Still no internet connection</string>
+    <string name="connection_methods">Connection methods</string>
+
+    <!-- Navigation -->
+    <string name="nav_back">Back</string>
+    <string name="nav_refresh">Refresh</string>
+    <string name="nav_forward">Forward</string>
+    <string name="nav_external">Open in browser</string>
+
+    <!-- Connection sheet -->
+    <string name="sheet_title">Connection</string>
+    <string name="mode_auto">Auto</string>
+    <string name="mode_auto_desc">Direct connection; if the site is unreachable — proxy or mirror turns on automatically</string>
+    <string name="mode_direct">Direct</string>
+    <string name="mode_direct_desc">Always connect directly, without proxy</string>
+    <string name="mode_mirror">Mirror</string>
+    <string name="mode_mirror_desc">Route through your own mirror (free Cloudflare Worker)</string>
+    <string name="mode_proxy">Proxy</string>
+    <string name="mode_proxy_desc">Always use built-in free proxy pool</string>
+    <string name="mirror_section_title">Your mirror</string>
+    <string name="mirror_section_hint">Free and most reliable: deploy the worker script from the app repository (mirror/ folder) on Cloudflare and paste its URL here.</string>
+    <string name="mirror_url_hint">https://your-worker.workers.dev</string>
+    <string name="mirror_save">Save mirror</string>
+    <string name="mirror_saved">Mirror saved</string>
+    <string name="mirror_invalid">Enter a valid URL, e.g. https://example.workers.dev</string>
+    <string name="mirror_empty">Add a mirror URL first</string>
+    <string name="proxy_test">Check proxies</string>
+    <string name="proxy_testing">Checking proxy pool…</string>
+    <string name="proxy_test_result">Working proxies found: %1$d</string>
+    <string name="proxy_test_none">No working proxies found. Try again or set up a mirror.</string>
+
+    <!-- Status texts -->
+    <string name="status_connected_direct">Connected directly</string>
+    <string name="status_connected_mirror">Connected via mirror</string>
+    <string name="status_connected_proxy">Connected via proxy · %1$s</string>
+    <string name="status_connecting">Connecting…</string>
+    <string name="status_checking_proxy">Looking for a proxy…</string>
+    <string name="status_failed">No connection</string>
+    <string name="status_idle">Idle</string>
+
+    <!-- Misc -->
     <string name="no_app_for_link">No app found to open this link</string>
     <string name="choose_file">Choose a file</string>
     <string name="no_file_picker">No file picker available</string>
