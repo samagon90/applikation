@@ -1,21 +1,37 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Surfaces (dark) -->
-    <color name="window_background">#0A0B0F</color>
-    <color name="surface">#15171D</color>
-    <color name="surface_pill">#E61A1D24</color>
-    <color name="pill_stroke">#26FFFFFF</color>
-    <color name="input_bg">#1C1F26</color>
-    <color name="input_stroke">#22FFFFFF</color>
-    <color name="icon_ring_bg">#334F46E5</color>
-    <color name="scrim">#73000000</color>
-    <color name="handle">#33FFFFFF</color>
+    <!-- iOS system colors (dark) -->
+    <color name="ios_blue">#0A84FF</color>
+    <color name="ios_green">#30D158</color>
+    <color name="ios_red">#FF453A</color>
+    <color name="ios_orange">#FF9F0A</color>
+    <color name="ios_background">#000000</color>
+    <color name="ios_card">#1C1C1E</color>
+    <color name="ios_field">#2C2C2E</color>
+    <color name="ios_separator">#3D545458</color>
+    <color name="ios_bar">#1C1C1E</color>
+    <color name="ios_text">#FFFFFF</color>
+    <color name="ios_text_secondary">#98989F</color>
+    <color name="ios_text_tertiary">#48484A</color>
+    <color name="ios_track">#4D767680</color>
+    <color name="ios_thumb">#636366</color>
+    <color name="ios_switch_off">#39393D</color>
+    <color name="ios_segment_label">#FFFFFF</color>
+    <color name="ios_segment_unselected">#EBEBF5</color>
+    <color name="ios_ring">#2C2C2E</color>
 
-    <!-- Text -->
-    <color name="text_primary">#F4F5F7</color>
-    <color name="text_secondary">#9AA1AE</color>
-    <color name="text_tertiary">#6B7280</color>
+    <color name="window_background">#000000</color>
+    <color name="splash_background">#000000</color>
 
-    <!-- Splash -->
-    <color name="splash_background">#0A0B0F</color>
+    <!-- Совместимость со старыми ссылками -->
+    <color name="brand">#0A84FF</color>
+    <color name="brand_violet">#0A84FF</color>
+    <color name="brand_cyan">#0A84FF</color>
+    <color name="status_ok">#30D158</color>
+    <color name="status_warn">#FF9F0A</color>
+    <color name="status_err">#FF453A</color>
+    <color name="text_primary">#FFFFFF</color>
+    <color name="text_secondary">#98989F</color>
+    <color name="text_tertiary">#48484A</color>
+    <color name="icon_ring_bg">#2C2C2E</color>
 </resources>

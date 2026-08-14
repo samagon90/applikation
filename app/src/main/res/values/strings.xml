@@ -14,6 +14,7 @@
     <string name="nav_back">Back</string>
     <string name="nav_refresh">Refresh</string>
     <string name="nav_forward">Forward</string>
+    <string name="nav_share">Share</string>
     <string name="nav_external">Open in browser</string>
 
     <!-- Connection sheet -->
@@ -21,14 +22,18 @@
     <string name="mode_auto">Auto</string>
     <string name="mode_auto_desc">Direct connection; if the site is unreachable — proxy or mirror turns on automatically</string>
     <string name="mode_direct">Direct</string>
+    <string name="mode_direct_short">Direct</string>
     <string name="mode_direct_desc">Always connect directly, without proxy</string>
     <string name="mode_mirror">Mirror</string>
     <string name="mode_mirror_desc">Route through your own mirror (free Cloudflare Worker)</string>
     <string name="mode_proxy">Proxy</string>
     <string name="mode_proxy_desc">Always use built-in free proxy pool</string>
-    <string name="mode_vpn">VPN (WARP)</string>
+    <string name="mode_vpn">VPN</string>
     <string name="mode_vpn_desc">Real VPN through free Cloudflare WARP — the whole device tunnel</string>
     <string name="mirror_section_title">Your mirror</string>
+    <string name="mirror_switch_title">Mirror</string>
+    <string name="mirror_switch_desc">Route the site through your Cloudflare Worker</string>
+    <string name="proxy_pool_title">Proxy pool</string>
     <string name="mirror_section_hint">Free and most reliable: deploy the worker script from the app repository (mirror/ folder) on Cloudflare and paste its URL here.</string>
     <string name="mirror_url_hint">https://your-worker.workers.dev</string>
     <string name="mirror_save">Save mirror</string>

@@ -12,6 +12,7 @@
     <string name="nav_back">Назад</string>
     <string name="nav_refresh">Обновить</string>
     <string name="nav_forward">Вперёд</string>
+    <string name="nav_share">Поделиться</string>
     <string name="nav_external">Открыть в браузере</string>
 
     <!-- Шторка подключения -->
@@ -19,14 +20,18 @@
     <string name="mode_auto">Авто</string>
     <string name="mode_auto_desc">Напрямую; если сайт недоступен — прокси или зеркало включаются сами</string>
     <string name="mode_direct">Напрямую</string>
+    <string name="mode_direct_short">Прямо</string>
     <string name="mode_direct_desc">Всегда подключаться напрямую, без прокси</string>
     <string name="mode_mirror">Зеркало</string>
     <string name="mode_mirror_desc">Через собственное зеркало (бесплатный Cloudflare Worker)</string>
     <string name="mode_proxy">Прокси</string>
     <string name="mode_proxy_desc">Всегда использовать встроенный пул бесплатных прокси</string>
-    <string name="mode_vpn">VPN (WARP)</string>
+    <string name="mode_vpn">VPN</string>
     <string name="mode_vpn_desc">Настоящий VPN через бесплатный Cloudflare WARP — туннель для всего устройства</string>
     <string name="mirror_section_title">Ваше зеркало</string>
+    <string name="mirror_switch_title">Зеркало</string>
+    <string name="mirror_switch_desc">Открывать сайт через ваш Cloudflare Worker</string>
+    <string name="proxy_pool_title">Пул прокси</string>
     <string name="mirror_section_hint">Бесплатно и надёжнее всего: разверните скрипт из репозитория приложения (папка mirror/) в Cloudflare и вставьте сюда его URL.</string>
     <string name="mirror_url_hint">https://your-worker.workers.dev</string>
     <string name="mirror_save">Сохранить зеркало</string>

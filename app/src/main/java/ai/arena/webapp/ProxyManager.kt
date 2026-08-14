@@ -74,6 +74,7 @@ class ProxyManager private constructor(context: Context) {
         private const val PREFS = "arena_connection"
         private const val KEY_MODE = "mode"
         private const val KEY_MIRROR_URL = "mirror_url"
+        private const val KEY_MIRROR_ENABLED = "mirror_enabled"
         private const val KEY_PROXY_CACHE = "proxy_cache"
         private const val KEY_PROXY_CACHE_TIME = "proxy_cache_time"
         private const val CACHE_TTL_MS = 30 * 60 * 1000L
@@ -144,6 +145,13 @@ class ProxyManager private constructor(context: Context) {
         get() = prefs.getString(KEY_MIRROR_URL, "").orEmpty()
         set(value) {
             prefs.edit().putString(KEY_MIRROR_URL, value.trim()).apply()
+        }
+
+    /** Включено ли зеркало (управляется свитчем в шторке). */
+    var mirrorEnabled: Boolean
+        get() = prefs.getBoolean(KEY_MIRROR_ENABLED, false)
+        set(value) {
+            prefs.edit().putBoolean(KEY_MIRROR_ENABLED, value).apply()
         }
 
     val isMirrorConfigured: Boolean
@@ -250,7 +258,7 @@ class ProxyManager private constructor(context: Context) {
         when (stage) {
             1 -> {
                 val mirror = normalizedMirrorUrl()
-                if (mirror != null) {
+                if (mirrorEnabled && mirror != null) {
                     setStatus(Status.CONNECTED_MIRROR, mirror)
                     mainHandler.post { load(mirror) }
                 } else {
@@ -290,7 +298,7 @@ class ProxyManager private constructor(context: Context) {
             }
             Mode.AUTO -> {
                 val mirror = normalizedMirrorUrl()
-                if (mirror != null) {
+                if (mirrorEnabled && mirror != null) {
                     // Зеркало надёжнее пула прокси — используем его первым.
                     setStatus(Status.CONNECTED_MIRROR, mirror)
                     mainHandler.post { load(mirror) }

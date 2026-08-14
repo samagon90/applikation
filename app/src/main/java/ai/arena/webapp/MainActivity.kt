@@ -1,5 +1,7 @@
 package ai.arena.webapp
 
+import ai.arena.webapp.ui.SegmentedControl
+import ai.arena.webapp.ui.SwitchView
 import ai.arena.webapp.vpn.ArenaVpnService
 import android.Manifest
 import android.animation.ObjectAnimator
@@ -11,23 +13,26 @@ import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.content.res.ColorStateList
 import android.content.res.Configuration
 import android.net.ConnectivityManager
-import android.net.VpnService
 import android.net.NetworkCapabilities
 import android.net.Uri
+import android.net.VpnService
 import android.os.Build
 import android.os.Bundle
 import android.os.Environment
 import android.os.Handler
 import android.os.Looper
 import android.view.HapticFeedbackConstants
+import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
 import android.view.WindowManager
 import android.view.animation.AccelerateDecelerateInterpolator
 import android.view.animation.AccelerateInterpolator
 import android.view.animation.DecelerateInterpolator
+import android.view.animation.OvershootInterpolator
 import android.view.inputmethod.InputMethodManager
 import android.webkit.CookieManager
 import android.webkit.PermissionRequest
@@ -40,7 +45,6 @@ import android.widget.Button
 import android.widget.EditText
 import android.widget.FrameLayout
 import android.widget.ImageButton
-import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
@@ -55,31 +59,45 @@ class MainActivity : Activity(), ArenaWebChromeClient.Host, ProxyManager.Listene
         private const val KEY_WEBVIEW_STATE = "webview_state"
         private const val MAX_AUTO_ATTEMPTS = 3
         private const val LOAD_TIMEOUT_MS = 20_000L
+
+        /** Порядок сегментов в UISegmentedControl. */
+        private val SEGMENT_MODES = listOf(
+            ProxyManager.Mode.AUTO,
+            ProxyManager.Mode.DIRECT,
+            ProxyManager.Mode.PROXY,
+            ProxyManager.Mode.VPN
+        )
     }
 
+    // Панели и навигация
     private lateinit var rootLayout: FrameLayout
-    private lateinit var webView: WebView
-    private lateinit var offlineView: View
-    private lateinit var fullscreenContainer: FrameLayout
-
-    private lateinit var progressBar: View
-    private lateinit var chip: LinearLayout
-    private lateinit var chipIcon: ImageView
-    private lateinit var chipText: TextView
-
+    private lateinit var topBar: LinearLayout
     private lateinit var bottomBar: LinearLayout
+    private lateinit var btnNavBack: ImageButton
     private lateinit var btnBack: ImageButton
     private lateinit var btnForward: ImageButton
+    private lateinit var statusSubtitle: TextView
+    private lateinit var statusDot: View
+    private lateinit var progressBar: View
 
+    // Контент
+    private lateinit var webView: WebView
+    private lateinit var offlineView: ScrollView
     private lateinit var offlineHint: TextView
+    private lateinit var fullscreenContainer: FrameLayout
 
+    // Шторка
     private lateinit var sheetRoot: FrameLayout
     private lateinit var sheetScrim: View
     private lateinit var sheetPanel: ScrollView
+    private lateinit var sheetHeader: LinearLayout
     private lateinit var sheetStatus: TextView
+    private lateinit var modeSegments: SegmentedControl
+    private lateinit var mirrorSwitch: SwitchView
+    private lateinit var mirrorConfig: LinearLayout
+    private lateinit var mirrorInput: EditText
     private lateinit var proxyStatusText: TextView
     private lateinit var btnTestProxies: Button
-    private lateinit var mirrorInput: EditText
 
     private lateinit var proxyManager: ProxyManager
 
@@ -90,11 +108,14 @@ class MainActivity : Activity(), ArenaWebChromeClient.Host, ProxyManager.Listene
 
     private var progressAnimator: ObjectAnimator? = null
     private var sheetOpen = false
-    private var barVisible = true
     private var autoAttempts = 0
     private var lastBlockedAt = 0L
     private var pendingVpnReload = false
     private var startingVpn = false
+
+    // Drag-to-dismiss шторки
+    private var dragStartY = 0f
+    private var dragging = false
 
     private val mainHandler = Handler(Looper.getMainLooper())
     private val loadTimeoutRunnable = Runnable { handleMainFrameBlocked() }
@@ -110,8 +131,7 @@ class MainActivity : Activity(), ArenaWebChromeClient.Host, ProxyManager.Listene
         bindViews()
         applyEdgeToEdgeInsets()
         setUpWebView()
-        setUpBottomBar()
-        setUpChip()
+        setUpBars()
         setUpSheet()
         setUpOffline()
 
@@ -123,10 +143,8 @@ class MainActivity : Activity(), ArenaWebChromeClient.Host, ProxyManager.Listene
             webView.restoreState(webViewState)
             handlePageFinished()
         } else if (proxyManager.mode == ProxyManager.Mode.PROXY) {
-            // В режиме «Прокси» ждём подключения пула перед первой загрузкой.
             proxyManager.connectViaPool { loadOrigin(ProxyManager.START_URL) }
         } else if (proxyManager.mode == ProxyManager.Mode.VPN) {
-            // В режиме «VPN» поднимаем туннель и ждём подключения.
             if (ArenaVpnService.isRunning()) {
                 loadOrigin(ProxyManager.START_URL)
             } else {
@@ -138,35 +156,37 @@ class MainActivity : Activity(), ArenaWebChromeClient.Host, ProxyManager.Listene
     }
 
     private fun setUpEdgeToEdge() {
-        // Контент под системными панелями; отступы навешивает insets-слушатель.
         window.addFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS)
         window.addFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_NAVIGATION)
     }
 
     private fun bindViews() {
         rootLayout = findViewById(R.id.root) as FrameLayout
-        webView = findViewById(R.id.web_view) as WebView
-        offlineView = findViewById(R.id.offline_view) as View
-        fullscreenContainer = findViewById(R.id.fullscreen_container) as FrameLayout
-
-        progressBar = findViewById(R.id.progress_bar) as View
-        chip = findViewById(R.id.connection_chip) as LinearLayout
-        chipIcon = findViewById(R.id.chip_icon) as ImageView
-        chipText = findViewById(R.id.chip_text) as TextView
-
+        topBar = findViewById(R.id.top_bar) as LinearLayout
         bottomBar = findViewById(R.id.bottom_bar) as LinearLayout
+        btnNavBack = findViewById(R.id.btn_nav_back) as ImageButton
         btnBack = findViewById(R.id.btn_back) as ImageButton
         btnForward = findViewById(R.id.btn_forward) as ImageButton
+        statusSubtitle = findViewById(R.id.status_subtitle) as TextView
+        statusDot = findViewById(R.id.status_dot) as View
+        progressBar = findViewById(R.id.progress_bar) as View
 
+        webView = findViewById(R.id.web_view) as WebView
+        offlineView = findViewById(R.id.offline_view) as ScrollView
         offlineHint = findViewById(R.id.offline_hint) as TextView
+        fullscreenContainer = findViewById(R.id.fullscreen_container) as FrameLayout
 
         sheetRoot = findViewById(R.id.sheet_root) as FrameLayout
         sheetScrim = findViewById(R.id.sheet_scrim) as View
         sheetPanel = findViewById(R.id.sheet_panel) as ScrollView
+        sheetHeader = findViewById(R.id.sheet_header) as LinearLayout
         sheetStatus = findViewById(R.id.sheet_status) as TextView
+        modeSegments = findViewById(R.id.mode_segments) as SegmentedControl
+        mirrorSwitch = findViewById(R.id.mirror_switch) as SwitchView
+        mirrorConfig = findViewById(R.id.mirror_config) as LinearLayout
+        mirrorInput = findViewById(R.id.mirror_url_input) as EditText
         proxyStatusText = findViewById(R.id.proxy_status_text) as TextView
         btnTestProxies = findViewById(R.id.btn_test_proxies) as Button
-        mirrorInput = findViewById(R.id.mirror_url_input) as EditText
     }
 
     @SuppressWarnings("deprecation")
@@ -226,11 +246,6 @@ class MainActivity : Activity(), ArenaWebChromeClient.Host, ProxyManager.Listene
         webView.webChromeClient = ArenaWebChromeClient(this)
         webView.setDownloadListener { url, userAgent, contentDisposition, mimeType, _ ->
             startDownload(url, userAgent, contentDisposition, mimeType)
-        }
-        webView.setOnScrollChangeListener { _, _, _, newY, oldY ->
-            val delta = newY - oldY
-            if (delta > 14) hideBottomBar()
-            else if (delta < -14) showBottomBar()
         }
     }
 
@@ -368,7 +383,7 @@ class MainActivity : Activity(), ArenaWebChromeClient.Host, ProxyManager.Listene
         )
     }
 
-    // ------------------------------------------------------------- Progress bar
+    // ------------------------------------------------------------ Progress bar
 
     private fun startProgress() {
         mainHandler.removeCallbacks(loadTimeoutRunnable)
@@ -377,7 +392,8 @@ class MainActivity : Activity(), ArenaWebChromeClient.Host, ProxyManager.Listene
         progressAnimator?.cancel()
         val screenWidth = resources.displayMetrics.widthPixels.toFloat()
         val barWidth = progressBar.width.takeIf { it > 0 }?.toFloat()
-            ?: (120 * resources.displayMetrics.density)
+            ?: (84 * resources.displayMetrics.density)
+        progressBar.translationX = -barWidth
         progressAnimator = ObjectAnimator.ofFloat(
             progressBar, View.TRANSLATION_X, -barWidth, screenWidth
         ).apply {
@@ -394,22 +410,30 @@ class MainActivity : Activity(), ArenaWebChromeClient.Host, ProxyManager.Listene
         progressBar.animate().alpha(0f).setDuration(200).start()
     }
 
-    // ---------------------------------------------------------------- Bottom bar
+    // ------------------------------------------------------------------ Bars
 
-    private fun setUpBottomBar() {
-        (findViewById(R.id.btn_back) as ImageButton).setOnClickListener {
+    private fun setUpBars() {
+        btnNavBack.setOnClickListener {
             haptic()
             if (webView.canGoBack()) webView.goBack()
         }
-        (findViewById(R.id.btn_refresh) as ImageButton).setOnClickListener {
+        btnBack.setOnClickListener {
             haptic()
-            loadOrigin(proxyManager.effectiveOrigin())
+            if (webView.canGoBack()) webView.goBack()
         }
         btnForward.setOnClickListener {
             haptic()
             if (webView.canGoForward()) webView.goForward()
         }
-        (findViewById(R.id.btn_external) as ImageButton).setOnClickListener {
+        (findViewById(R.id.btn_refresh) as ImageButton).setOnClickListener {
+            haptic()
+            loadOrigin(proxyManager.effectiveOrigin())
+        }
+        (findViewById(R.id.btn_shield) as ImageButton).setOnClickListener {
+            haptic()
+            openSheet()
+        }
+        (findViewById(R.id.btn_share) as ImageButton).setOnClickListener {
             haptic()
             val url = webView.url ?: proxyManager.effectiveOrigin()
             openExternal(Uri.parse(url))
@@ -418,66 +442,51 @@ class MainActivity : Activity(), ArenaWebChromeClient.Host, ProxyManager.Listene
     }
 
     private fun refreshNavButtons() {
-        btnBack.isEnabled = webView.canGoBack()
-        btnForward.isEnabled = webView.canGoForward()
-        btnBack.alpha = if (btnBack.isEnabled) 1f else 0.35f
-        btnForward.alpha = if (btnForward.isEnabled) 1f else 0.35f
-    }
+        val canBack = webView.canGoBack()
+        val canForward = webView.canGoForward()
 
-    private fun refreshBottomBar() {
-        val offset = (if (bottomBar.height > 0) bottomBar.height.toFloat()
-        else 96f * resources.displayMetrics.density) + 40f
-        bottomBar.animate()
-            .translationY(if (barVisible) 0f else offset)
-            .alpha(if (barVisible) 1f else 0f)
-            .setDuration(180)
-            .start()
-    }
+        btnNavBack.visibility = if (canBack) View.VISIBLE else View.INVISIBLE
+        btnNavBack.alpha = if (canBack) 1f else 0.3f
 
-    private fun showBottomBar() {
-        if (barVisible) return
-        barVisible = true
-        refreshBottomBar()
-    }
-
-    private fun hideBottomBar() {
-        if (!barVisible) return
-        barVisible = false
-        refreshBottomBar()
+        btnBack.isEnabled = canBack
+        btnForward.isEnabled = canForward
+        btnBack.alpha = if (canBack) 1f else 0.3f
+        btnForward.alpha = if (canForward) 1f else 0.3f
     }
 
     private fun haptic() {
         rootLayout.performHapticFeedback(HapticFeedbackConstants.CONTEXT_CLICK)
     }
 
-    // -------------------------------------------------------------------- Chip
-
-    private fun setUpChip() {
-        chip.setOnClickListener {
-            haptic()
-            openSheet()
-        }
-    }
-
-    // ------------------------------------------------------------------- Sheet
+    // ------------------------------------------------------------------ Sheet
 
     private fun setUpSheet() {
         sheetScrim.setOnClickListener { closeSheet() }
+        setUpSheetDrag()
 
-        (findViewById(R.id.row_mode_auto) as View).setOnClickListener {
-            haptic(); selectMode(ProxyManager.Mode.AUTO)
+        modeSegments.setup(
+            listOf(
+                getString(R.string.mode_auto),
+                getString(R.string.mode_direct_short),
+                getString(R.string.mode_proxy),
+                getString(R.string.mode_vpn)
+            )
+        )
+        modeSegments.onSelect = { index ->
+            haptic()
+            val mode = SEGMENT_MODES.getOrElse(index) { ProxyManager.Mode.AUTO }
+            selectMode(mode)
         }
-        (findViewById(R.id.row_mode_direct) as View).setOnClickListener {
-            haptic(); selectMode(ProxyManager.Mode.DIRECT)
-        }
-        (findViewById(R.id.row_mode_mirror) as View).setOnClickListener {
-            haptic(); selectMode(ProxyManager.Mode.MIRROR)
-        }
-        (findViewById(R.id.row_mode_proxy) as View).setOnClickListener {
-            haptic(); selectMode(ProxyManager.Mode.PROXY)
+
+        mirrorSwitch.onCheckedChanged = { on ->
+            proxyManager.mirrorEnabled = on
+            mirrorConfig.visibility = if (on) View.VISIBLE else View.GONE
+            updateSheetHeight()
+            if (on) mirrorInput.requestFocus()
         }
 
         (findViewById(R.id.btn_save_mirror) as Button).setOnClickListener {
+            haptic()
             saveMirror()
         }
 
@@ -496,20 +505,51 @@ class MainActivity : Activity(), ArenaWebChromeClient.Host, ProxyManager.Listene
         }
     }
 
-    private fun selectMode(newMode: ProxyManager.Mode) {
-        if (newMode == ProxyManager.Mode.MIRROR && !proxyManager.isMirrorConfigured) {
-            Toast.makeText(this, R.string.mirror_empty, Toast.LENGTH_SHORT).show()
-            mirrorInput.requestFocus()
-            return
+    private fun setUpSheetDrag() {
+        sheetHeader.setOnTouchListener { _, e ->
+            when (e.actionMasked) {
+                MotionEvent.ACTION_DOWN -> {
+                    dragStartY = e.rawY
+                    dragging = false
+                    true
+                }
+                MotionEvent.ACTION_MOVE -> {
+                    val dy = e.rawY - dragStartY
+                    if (dy > 24f || dragging) {
+                        dragging = true
+                        sheetPanel.translationY = dy.coerceAtLeast(0f)
+                        val f = 1f - dy / (sheetPanel.height + 1).toFloat()
+                        sheetScrim.alpha = f.coerceIn(0f, 1f)
+                    }
+                    true
+                }
+                MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                    if (dragging && sheetPanel.translationY > sheetPanel.height * 0.25f) {
+                        closeSheet()
+                    } else {
+                        sheetPanel.animate()
+                            .translationY(0f)
+                            .setDuration(200)
+                            .setInterpolator(DecelerateInterpolator())
+                            .start()
+                        sheetScrim.animate().alpha(1f).setDuration(150).start()
+                    }
+                    dragging = false
+                    true
+                }
+                else -> false
+            }
         }
+    }
+
+    private fun selectMode(newMode: ProxyManager.Mode) {
         if (proxyManager.mode == newMode && newMode != ProxyManager.Mode.PROXY) {
-            updateSheetChecks()
+            syncSegments()
             return
         }
         val wasVpn = proxyManager.mode == ProxyManager.Mode.VPN
         proxyManager.changeMode(newMode)
-        updateSheetChecks()
-        // Перезагружаем сайт с новым способом подключения
+        syncSegments()
         when (newMode) {
             ProxyManager.Mode.MIRROR ->
                 proxyManager.normalizedMirrorUrl()?.let { loadOrigin(it) }
@@ -527,6 +567,11 @@ class MainActivity : Activity(), ArenaWebChromeClient.Host, ProxyManager.Listene
                 loadOrigin(ProxyManager.START_URL)
             }
         }
+    }
+
+    private fun syncSegments() {
+        val idx = SEGMENT_MODES.indexOf(proxyManager.mode)
+        modeSegments.select(if (idx >= 0) idx else 0, animate = false)
     }
 
     private fun saveMirror() {
@@ -556,13 +601,14 @@ class MainActivity : Activity(), ArenaWebChromeClient.Host, ProxyManager.Listene
         sheetOpen = true
         updateSheetUi()
         sheetRoot.visibility = View.VISIBLE
+        updateSheetHeight()
         sheetScrim.animate().alpha(1f).setDuration(200).start()
         sheetPanel.post {
             sheetPanel.translationY = sheetPanel.height.toFloat()
             sheetPanel.animate()
                 .translationY(0f)
-                .setDuration(280)
-                .setInterpolator(DecelerateInterpolator())
+                .setDuration(340)
+                .setInterpolator(OvershootInterpolator(0.45f))
                 .start()
         }
     }
@@ -573,8 +619,8 @@ class MainActivity : Activity(), ArenaWebChromeClient.Host, ProxyManager.Listene
         sheetScrim.animate().alpha(0f).setDuration(200).start()
         sheetPanel.animate()
             .translationY(sheetPanel.height.toFloat())
-            .setDuration(220)
-            .setInterpolator(AccelerateInterpolator())
+            .setDuration(240)
+            .setInterpolator(AccelerateInterpolator(0.8f))
             .withEndAction {
                 sheetRoot.visibility = View.GONE
                 sheetPanel.translationY = 0f
@@ -582,27 +628,40 @@ class MainActivity : Activity(), ArenaWebChromeClient.Host, ProxyManager.Listene
             .start()
     }
 
-    private fun updateSheetChecks() {
-        val mode = proxyManager.mode
-        (findViewById(R.id.check_auto) as View).visibility =
-            if (mode == ProxyManager.Mode.AUTO) View.VISIBLE else View.INVISIBLE
-        (findViewById(R.id.check_direct) as View).visibility =
-            if (mode == ProxyManager.Mode.DIRECT) View.VISIBLE else View.INVISIBLE
-        (findViewById(R.id.check_mirror) as View).visibility =
-            if (mode == ProxyManager.Mode.MIRROR) View.VISIBLE else View.INVISIBLE
-        (findViewById(R.id.check_proxy) as View).visibility =
-            if (mode == ProxyManager.Mode.PROXY) View.VISIBLE else View.INVISIBLE
+    private fun updateSheetHeight() {
+        sheetPanel.post {
+            val maxH = (resources.displayMetrics.heightPixels * 0.85f).toInt()
+            val child = sheetPanel.getChildAt(0) ?: return@post
+            val widthSpec = View.MeasureSpec.makeMeasureSpec(
+                sheetPanel.width, View.MeasureSpec.EXACTLY
+            )
+            child.measure(
+                widthSpec,
+                View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
+            )
+            val h = (child.measuredHeight +
+                sheetPanel.paddingTop + sheetPanel.paddingBottom).coerceAtMost(maxH)
+            val lp = sheetPanel.layoutParams
+            if (lp.height != h) {
+                lp.height = h
+                sheetPanel.layoutParams = lp
+            }
+        }
     }
 
     private fun updateSheetUi() {
-        updateSheetChecks()
+        syncSegments()
         val state = proxyManager.currentState()
         sheetStatus.text = statusText(state)
+        mirrorSwitch.setChecked(proxyManager.mirrorEnabled, animate = false)
+        mirrorConfig.visibility =
+            if (proxyManager.mirrorEnabled) View.VISIBLE else View.GONE
         mirrorInput.setText(proxyManager.mirrorUrl)
-        proxyStatusText.text = getString(R.string.proxy_test)
         val cached = proxyManager.cachedCandidateCount()
-        if (cached > 0) {
-            proxyStatusText.text = getString(R.string.proxy_test_result, cached)
+        proxyStatusText.text = if (cached > 0) {
+            getString(R.string.proxy_test_result, cached)
+        } else {
+            getString(R.string.proxy_test)
         }
     }
 
@@ -613,33 +672,20 @@ class MainActivity : Activity(), ArenaWebChromeClient.Host, ProxyManager.Listene
             pendingVpnReload = false
             loadOrigin(ProxyManager.START_URL)
         }
-        chipText.text = chipLabel(state)
-        val colorRes = when (state.status) {
-            ProxyManager.Status.CONNECTED_DIRECT -> R.color.brand
-            ProxyManager.Status.CONNECTED_MIRROR -> R.color.brand_cyan
-            ProxyManager.Status.CONNECTED_PROXY -> R.color.status_ok
-            ProxyManager.Status.CONNECTED_VPN -> R.color.status_ok
-            ProxyManager.Status.CHECKING -> R.color.status_warn
-            ProxyManager.Status.FAILED -> R.color.status_err
-            ProxyManager.Status.IDLE -> R.color.brand
+        statusSubtitle.text = statusText(state)
+        val dotColor = when (state.status) {
+            ProxyManager.Status.CONNECTED_DIRECT -> R.color.ios_green
+            ProxyManager.Status.CONNECTED_MIRROR,
+            ProxyManager.Status.CONNECTED_PROXY,
+            ProxyManager.Status.CONNECTED_VPN -> R.color.ios_blue
+            ProxyManager.Status.CHECKING -> R.color.ios_orange
+            ProxyManager.Status.FAILED -> R.color.ios_red
+            ProxyManager.Status.IDLE -> R.color.ios_text_tertiary
         }
-        chipIcon.setColorFilter(getColor(colorRes))
+        statusDot.backgroundTintList = ColorStateList.valueOf(getColor(dotColor))
         if (sheetOpen) {
             sheetStatus.text = statusText(state)
         }
-        val visible = state.status != ProxyManager.Status.IDLE
-        chip.visibility = if (visible) View.VISIBLE else View.GONE
-    }
-
-    private fun chipLabel(state: ProxyManager.State): String = when (state.status) {
-        ProxyManager.Status.CONNECTED_DIRECT -> getString(R.string.mode_direct)
-        ProxyManager.Status.CONNECTED_MIRROR -> getString(R.string.mode_mirror)
-        ProxyManager.Status.CONNECTED_PROXY ->
-            getString(R.string.status_connected_proxy, state.detail)
-        ProxyManager.Status.CONNECTED_VPN -> getString(R.string.status_connected_vpn)
-        ProxyManager.Status.CHECKING -> getString(R.string.status_connecting)
-        ProxyManager.Status.FAILED -> getString(R.string.status_failed)
-        ProxyManager.Status.IDLE -> ""
     }
 
     private fun statusText(state: ProxyManager.State): String = when (state.status) {
@@ -782,16 +828,16 @@ class MainActivity : Activity(), ArenaWebChromeClient.Host, ProxyManager.Listene
             )
         )
         fullscreenContainer.visibility = View.VISIBLE
+        topBar.visibility = View.GONE
         bottomBar.visibility = View.GONE
-        chip.visibility = View.GONE
     }
 
     override fun onExitFullscreen() {
         if (customView == null) return
         fullscreenContainer.removeAllViews()
         fullscreenContainer.visibility = View.GONE
+        topBar.visibility = View.VISIBLE
         bottomBar.visibility = View.VISIBLE
-        chip.visibility = View.VISIBLE
         customView = null
         customViewCallback?.onCustomViewHidden()
         customViewCallback = null

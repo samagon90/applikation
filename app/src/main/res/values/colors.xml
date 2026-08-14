@@ -1,32 +1,37 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Brand -->
-    <color name="brand">#4F46E5</color>
-    <color name="brand_violet">#7C3AED</color>
-    <color name="brand_cyan">#22D3EE</color>
+    <!-- iOS system colors -->
+    <color name="ios_blue">#007AFF</color>
+    <color name="ios_green">#34C759</color>
+    <color name="ios_red">#FF3B30</color>
+    <color name="ios_orange">#FF9500</color>
+    <color name="ios_background">#F2F2F7</color>
+    <color name="ios_card">#FFFFFF</color>
+    <color name="ios_field">#F2F2F7</color>
+    <color name="ios_separator">#293C3C43</color>
+    <color name="ios_bar">#FAFAFC</color>
+    <color name="ios_text">#000000</color>
+    <color name="ios_text_secondary">#8E8E93</color>
+    <color name="ios_text_tertiary">#C7C7CC</color>
+    <color name="ios_track">#33787880</color>
+    <color name="ios_thumb">#FFFFFF</color>
+    <color name="ios_switch_off">#E9E9EA</color>
+    <color name="ios_segment_label">#000000</color>
+    <color name="ios_segment_unselected">#3C3C43</color>
+    <color name="ios_ring">#E9E9EA</color>
 
-    <!-- Surfaces (light) -->
-    <color name="window_background">#F6F7F9</color>
-    <color name="surface">#FFFFFF</color>
-    <color name="surface_pill">#F2FFFFFF</color>
-    <color name="pill_stroke">#1F000000</color>
-    <color name="input_bg">#FFFFFF</color>
-    <color name="input_stroke">#1F000000</color>
-    <color name="icon_ring_bg">#1F4F46E5</color>
-    <color name="scrim">#52000000</color>
-    <color name="handle">#33000000</color>
+    <color name="window_background">#F2F2F7</color>
+    <color name="splash_background">#F2F2F7</color>
 
-    <!-- Text -->
-    <color name="text_primary">#111318</color>
-    <color name="text_secondary">#5B5F6A</color>
-    <color name="text_tertiary">#8A8F9C</color>
-    <color name="text_on_accent">#FFFFFF</color>
-
-    <!-- Status -->
-    <color name="status_ok">#16A34A</color>
-    <color name="status_warn">#D97706</color>
-    <color name="status_err">#DC2626</color>
-
-    <!-- Splash -->
-    <color name="splash_background">#F6F7F9</color>
+    <!-- Совместимость со старыми ссылками -->
+    <color name="brand">#007AFF</color>
+    <color name="brand_violet">#007AFF</color>
+    <color name="brand_cyan">#0A84FF</color>
+    <color name="status_ok">#34C759</color>
+    <color name="status_warn">#FF9500</color>
+    <color name="status_err">#FF3B30</color>
+    <color name="text_primary">#000000</color>
+    <color name="text_secondary">#8E8E93</color>
+    <color name="text_tertiary">#C7C7CC</color>
+    <color name="icon_ring_bg">#E9E9EA</color>
 </resources>
