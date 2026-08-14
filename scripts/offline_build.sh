@@ -29,8 +29,8 @@ JARSIGNER="$JAVA_HOME/bin/jarsigner"
 
 MIN_SDK=26
 TARGET_SDK=29
-VERSION_CODE=2
-VERSION_NAME="2.0.0"
+VERSION_CODE=3
+VERSION_NAME="2.0.1"
 APP_ID="ai.arena.webapp"
 
 rm -rf "$OUT" && mkdir -p "$OUT"/{flat,gen,classes,dex,apk} "$APK_DIR" "$DIST"
@@ -58,9 +58,15 @@ echo "==> [4/7] Generate R classes (Kotlin)"
 python3 "$ROOT/scripts/gen_r_kotlin.py" "$OUT/R.txt" "$OUT/gen" "$APP_ID"
 
 echo "==> [5/7] kotlinc"
+# Kotlin 2.0 по умолчанию генерирует лямбды и SAM-конверсии через
+# invokedynamic (LambdaMetafactory). Dexer dx не умеет desugar
+# invoke-custom, а ART такие инструкции не исполняет — приложение
+# падало при запуске. Поэтому обе схемы переключаем на классы.
 "$JAVA" -Xmx2g -cp "$KOTLIN_COMPILER_JAR" org.jetbrains.kotlin.cli.jvm.K2JVMCompiler \
     -classpath "$ANDROID_JAR" \
     -jvm-target 1.8 \
+    -Xlambdas=class \
+    -Xsam-conversions=class \
     -no-reflect \
     -d "$OUT/classes" \
     $(find "$APP/src/main/java" -name '*.kt') \

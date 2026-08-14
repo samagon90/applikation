@@ -554,7 +554,7 @@ class MainActivity : Activity(), ArenaWebChromeClient.Host, ProxyManager.Listene
         chip.visibility = if (visible) View.VISIBLE else View.GONE
     }
 
-    private fun chipText(state: ProxyManager.State): String = when (state.status) {
+    private fun chipLabel(state: ProxyManager.State): String = when (state.status) {
         ProxyManager.Status.CONNECTED_DIRECT -> getString(R.string.mode_direct)
         ProxyManager.Status.CONNECTED_MIRROR -> getString(R.string.mode_mirror)
         ProxyManager.Status.CONNECTED_PROXY ->

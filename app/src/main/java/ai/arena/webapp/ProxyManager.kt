@@ -414,7 +414,8 @@ class ProxyManager private constructor(context: Context) {
         } finally {
             pool.shutdownNow()
         }
-        return results.sortedBy { it.latencyMs }.take(limit)
+        return results.sortedWith(Comparator { a, b -> a.latencyMs.compareTo(b.latencyMs) })
+            .take(limit)
     }
 
     private fun checkProxy(candidate: Candidate): Long {

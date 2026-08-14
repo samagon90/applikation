@@ -11,8 +11,8 @@ android {
         applicationId = "ai.arena.webapp"
         minSdk = 26
         targetSdk = 35
-        versionCode = 2
-        versionName = "2.0.0"
+        versionCode = 3
+        versionName = "2.0.1"
     }
 
     signingConfigs {
@@ -45,6 +45,9 @@ android {
 
     kotlinOptions {
         jvmTarget = "17"
+        // Совместимость с оффлайн-сборкой через dx: лямбды классами, а не
+        // invokedynamic (dx не умеет desugar invoke-custom, ART его не исполняет).
+        freeCompilerArgs += listOf("-Xlambdas=class", "-Xsam-conversions=class")
     }
 }
 

@@ -12,9 +12,9 @@
 | targetSdk       | 35 (Gradle) / 29 (оффлайн-сборка) |
 | Язык            | Kotlin                 |
 | Зависимости     | **нет** (только платформенные API) |
-| Версия          | 2.0.0 (versionCode 2)  |
+| Версия          | 2.0.1 (versionCode 3)  |
 
-Готовый установочный файл v2.0.0: **`dist/ArenaAI-release.apk`**
+Готовый установочный файл v2.0.1: **`dist/ArenaAI-release.apk`**
 (собран без Android SDK — см. «Сборка без Android SDK»).
 APK прошлой версии: `dist/ArenaAI-v1.0.0.apk`.
 
