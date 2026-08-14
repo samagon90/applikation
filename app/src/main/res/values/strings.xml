@@ -26,6 +26,8 @@
     <string name="mode_mirror_desc">Route through your own mirror (free Cloudflare Worker)</string>
     <string name="mode_proxy">Proxy</string>
     <string name="mode_proxy_desc">Always use built-in free proxy pool</string>
+    <string name="mode_vpn">VPN (WARP)</string>
+    <string name="mode_vpn_desc">Real VPN through free Cloudflare WARP — the whole device tunnel</string>
     <string name="mirror_section_title">Your mirror</string>
     <string name="mirror_section_hint">Free and most reliable: deploy the worker script from the app repository (mirror/ folder) on Cloudflare and paste its URL here.</string>
     <string name="mirror_url_hint">https://your-worker.workers.dev</string>
@@ -42,6 +44,9 @@
     <string name="status_connected_direct">Connected directly</string>
     <string name="status_connected_mirror">Connected via mirror</string>
     <string name="status_connected_proxy">Connected via proxy · %1$s</string>
+    <string name="status_connected_vpn">VPN · WARP connected</string>
+    <string name="vpn_denied">VPN permission denied</string>
+    <string name="vpn_no_intent">Unable to show VPN permission dialog</string>
     <string name="status_connecting">Connecting…</string>
     <string name="status_checking_proxy">Looking for a proxy…</string>
     <string name="status_failed">No connection</string>

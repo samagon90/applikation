@@ -24,6 +24,8 @@
     <string name="mode_mirror_desc">Через собственное зеркало (бесплатный Cloudflare Worker)</string>
     <string name="mode_proxy">Прокси</string>
     <string name="mode_proxy_desc">Всегда использовать встроенный пул бесплатных прокси</string>
+    <string name="mode_vpn">VPN (WARP)</string>
+    <string name="mode_vpn_desc">Настоящий VPN через бесплатный Cloudflare WARP — туннель для всего устройства</string>
     <string name="mirror_section_title">Ваше зеркало</string>
     <string name="mirror_section_hint">Бесплатно и надёжнее всего: разверните скрипт из репозитория приложения (папка mirror/) в Cloudflare и вставьте сюда его URL.</string>
     <string name="mirror_url_hint">https://your-worker.workers.dev</string>
@@ -40,6 +42,9 @@
     <string name="status_connected_direct">Подключено напрямую</string>
     <string name="status_connected_mirror">Подключено через зеркало</string>
     <string name="status_connected_proxy">Подключено через прокси · %1$s</string>
+    <string name="status_connected_vpn">VPN · WARP подключён</string>
+    <string name="vpn_denied">Разрешение на VPN отклонено</string>
+    <string name="vpn_no_intent">Не удалось показать диалог разрешения VPN</string>
     <string name="status_connecting">Подключение…</string>
     <string name="status_checking_proxy">Ищу прокси…</string>
     <string name="status_failed">Нет соединения</string>

@@ -29,8 +29,8 @@ JARSIGNER="$JAVA_HOME/bin/jarsigner"
 
 MIN_SDK=26
 TARGET_SDK=29
-VERSION_CODE=3
-VERSION_NAME="2.0.1"
+VERSION_CODE=4
+VERSION_NAME="2.1.0"
 APP_ID="ai.arena.webapp"
 
 rm -rf "$OUT" && mkdir -p "$OUT"/{flat,gen,classes,dex,apk} "$APK_DIR" "$DIST"

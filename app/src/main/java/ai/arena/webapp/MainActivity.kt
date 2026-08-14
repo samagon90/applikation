@@ -1,5 +1,6 @@
 package ai.arena.webapp
 
+import ai.arena.webapp.vpn.ArenaVpnService
 import android.Manifest
 import android.animation.ObjectAnimator
 import android.animation.ValueAnimator
@@ -12,6 +13,7 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.content.res.Configuration
 import android.net.ConnectivityManager
+import android.net.VpnService
 import android.net.NetworkCapabilities
 import android.net.Uri
 import android.os.Build
@@ -49,8 +51,9 @@ class MainActivity : Activity(), ArenaWebChromeClient.Host, ProxyManager.Listene
     companion object {
         private const val REQUEST_FILE_CHOOSER = 1001
         private const val REQUEST_WEB_PERMISSIONS = 1002
+        private const val REQUEST_VPN_CONSENT = 1003
         private const val KEY_WEBVIEW_STATE = "webview_state"
-        private const val MAX_AUTO_ATTEMPTS = 2
+        private const val MAX_AUTO_ATTEMPTS = 3
         private const val LOAD_TIMEOUT_MS = 20_000L
     }
 
@@ -90,6 +93,8 @@ class MainActivity : Activity(), ArenaWebChromeClient.Host, ProxyManager.Listene
     private var barVisible = true
     private var autoAttempts = 0
     private var lastBlockedAt = 0L
+    private var pendingVpnReload = false
+    private var startingVpn = false
 
     private val mainHandler = Handler(Looper.getMainLooper())
     private val loadTimeoutRunnable = Runnable { handleMainFrameBlocked() }
@@ -120,6 +125,13 @@ class MainActivity : Activity(), ArenaWebChromeClient.Host, ProxyManager.Listene
         } else if (proxyManager.mode == ProxyManager.Mode.PROXY) {
             // В режиме «Прокси» ждём подключения пула перед первой загрузкой.
             proxyManager.connectViaPool { loadOrigin(ProxyManager.START_URL) }
+        } else if (proxyManager.mode == ProxyManager.Mode.VPN) {
+            // В режиме «VPN» поднимаем туннель и ждём подключения.
+            if (ArenaVpnService.isRunning()) {
+                loadOrigin(ProxyManager.START_URL)
+            } else {
+                startVpnWithConsent(pendingReload = true)
+            }
         } else {
             loadOrigin(proxyManager.effectiveOrigin())
         }
@@ -277,7 +289,12 @@ class MainActivity : Activity(), ArenaWebChromeClient.Host, ProxyManager.Listene
             return
         }
         autoAttempts++
-        proxyManager.onMainFrameBlocked { origin -> loadOrigin(origin) }
+        if (autoAttempts >= MAX_AUTO_ATTEMPTS) {
+            // финальная стадия — встроенный VPN (WARP)
+            startVpnWithConsent(pendingReload = true)
+            return
+        }
+        proxyManager.applyAutoStage(autoAttempts) { origin -> loadOrigin(origin) }
     }
 
     private fun retry() {
@@ -301,10 +318,54 @@ class MainActivity : Activity(), ArenaWebChromeClient.Host, ProxyManager.Listene
             ProxyManager.Mode.PROXY -> proxyManager.tryNext {
                 loadOrigin(ProxyManager.START_URL)
             }
-            ProxyManager.Mode.AUTO -> proxyManager.onMainFrameBlocked { origin ->
-                loadOrigin(origin)
+            ProxyManager.Mode.VPN -> {
+                if (ArenaVpnService.isRunning()) {
+                    loadOrigin(ProxyManager.START_URL)
+                } else {
+                    startVpnWithConsent(pendingReload = true)
+                }
+            }
+            ProxyManager.Mode.AUTO -> {
+                autoAttempts = 0
+                handleMainFrameBlocked()
             }
         }
+    }
+
+    // ------------------------------------------------------------------- VPN
+
+    private fun startVpnWithConsent(pendingReload: Boolean) {
+        pendingVpnReload = pendingReload
+        if (startingVpn) return
+        startingVpn = true
+        val intent = VpnService.prepare(this)
+        if (intent != null) {
+            try {
+                startActivityForResult(intent, REQUEST_VPN_CONSENT)
+            } catch (e: ActivityNotFoundException) {
+                startingVpn = false
+                Toast.makeText(this, R.string.vpn_no_intent, Toast.LENGTH_SHORT).show()
+            }
+        } else {
+            startVpnService()
+        }
+    }
+
+    private fun startVpnService() {
+        startingVpn = false
+        startService(
+            Intent(this, ArenaVpnService::class.java)
+                .setAction(ArenaVpnService.ACTION_START)
+        )
+    }
+
+    private fun stopVpnService() {
+        startingVpn = false
+        pendingVpnReload = false
+        startService(
+            Intent(this, ArenaVpnService::class.java)
+                .setAction(ArenaVpnService.ACTION_STOP)
+        )
     }
 
     // ------------------------------------------------------------- Progress bar
@@ -445,6 +506,7 @@ class MainActivity : Activity(), ArenaWebChromeClient.Host, ProxyManager.Listene
             updateSheetChecks()
             return
         }
+        val wasVpn = proxyManager.mode == ProxyManager.Mode.VPN
         proxyManager.changeMode(newMode)
         updateSheetChecks()
         // Перезагружаем сайт с новым способом подключения
@@ -453,7 +515,17 @@ class MainActivity : Activity(), ArenaWebChromeClient.Host, ProxyManager.Listene
                 proxyManager.normalizedMirrorUrl()?.let { loadOrigin(it) }
             ProxyManager.Mode.PROXY ->
                 proxyManager.connectViaPool { loadOrigin(ProxyManager.START_URL) }
-            else -> loadOrigin(ProxyManager.START_URL)
+            ProxyManager.Mode.VPN -> {
+                if (ArenaVpnService.isRunning()) {
+                    loadOrigin(ProxyManager.START_URL)
+                } else {
+                    startVpnWithConsent(pendingReload = true)
+                }
+            }
+            else -> {
+                if (wasVpn) stopVpnService()
+                loadOrigin(ProxyManager.START_URL)
+            }
         }
     }
 
@@ -537,11 +609,16 @@ class MainActivity : Activity(), ArenaWebChromeClient.Host, ProxyManager.Listene
     // ------------------------------------------------------------ ProxyManager.Listener
 
     override fun onStateChanged(state: ProxyManager.State) {
+        if (state.status == ProxyManager.Status.CONNECTED_VPN && pendingVpnReload) {
+            pendingVpnReload = false
+            loadOrigin(ProxyManager.START_URL)
+        }
         chipText.text = chipLabel(state)
         val colorRes = when (state.status) {
             ProxyManager.Status.CONNECTED_DIRECT -> R.color.brand
             ProxyManager.Status.CONNECTED_MIRROR -> R.color.brand_cyan
             ProxyManager.Status.CONNECTED_PROXY -> R.color.status_ok
+            ProxyManager.Status.CONNECTED_VPN -> R.color.status_ok
             ProxyManager.Status.CHECKING -> R.color.status_warn
             ProxyManager.Status.FAILED -> R.color.status_err
             ProxyManager.Status.IDLE -> R.color.brand
@@ -559,6 +636,7 @@ class MainActivity : Activity(), ArenaWebChromeClient.Host, ProxyManager.Listene
         ProxyManager.Status.CONNECTED_MIRROR -> getString(R.string.mode_mirror)
         ProxyManager.Status.CONNECTED_PROXY ->
             getString(R.string.status_connected_proxy, state.detail)
+        ProxyManager.Status.CONNECTED_VPN -> getString(R.string.status_connected_vpn)
         ProxyManager.Status.CHECKING -> getString(R.string.status_connecting)
         ProxyManager.Status.FAILED -> getString(R.string.status_failed)
         ProxyManager.Status.IDLE -> ""
@@ -569,6 +647,7 @@ class MainActivity : Activity(), ArenaWebChromeClient.Host, ProxyManager.Listene
         ProxyManager.Status.CONNECTED_MIRROR -> getString(R.string.status_connected_mirror)
         ProxyManager.Status.CONNECTED_PROXY ->
             getString(R.string.status_connected_proxy, state.detail)
+        ProxyManager.Status.CONNECTED_VPN -> getString(R.string.status_connected_vpn)
         ProxyManager.Status.CHECKING -> getString(R.string.status_checking_proxy)
         ProxyManager.Status.FAILED -> getString(R.string.status_failed)
         ProxyManager.Status.IDLE -> getString(R.string.status_idle)
@@ -722,6 +801,15 @@ class MainActivity : Activity(), ArenaWebChromeClient.Host, ProxyManager.Listene
 
     @Deprecated("Deprecated in Java")
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        if (requestCode == REQUEST_VPN_CONSENT) {
+            startingVpn = false
+            if (resultCode == Activity.RESULT_OK) {
+                startVpnService()
+            } else {
+                Toast.makeText(this, R.string.vpn_denied, Toast.LENGTH_SHORT).show()
+            }
+            return
+        }
         if (requestCode == REQUEST_FILE_CHOOSER) {
             filePathCallback?.onReceiveValue(
                 WebChromeClient.FileChooserParams.parseResult(resultCode, data)

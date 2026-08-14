@@ -6,6 +6,7 @@ import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
+import ai.arena.webapp.vpn.ArenaVpnService
 import java.io.BufferedReader
 import java.io.InputStreamReader
 import java.net.HttpURLConnection
@@ -47,9 +48,12 @@ import javax.net.ssl.SSLSocket
  */
 class ProxyManager private constructor(context: Context) {
 
-    enum class Mode { AUTO, DIRECT, MIRROR, PROXY }
+    enum class Mode { AUTO, DIRECT, MIRROR, PROXY, VPN }
 
-    enum class Status { IDLE, CHECKING, CONNECTED_DIRECT, CONNECTED_MIRROR, CONNECTED_PROXY, FAILED }
+    enum class Status {
+        IDLE, CHECKING, CONNECTED_DIRECT, CONNECTED_MIRROR,
+        CONNECTED_PROXY, CONNECTED_VPN, FAILED
+    }
 
     data class State(
         val mode: Mode,
@@ -113,6 +117,19 @@ class ProxyManager private constructor(context: Context) {
 
     private var proxyApplied = false
     private var appliedProxy: Candidate? = null
+
+    init {
+        // Состояние встроенного VPN (Cloudflare WARP)
+        ArenaVpnService.addListener(object : ArenaVpnService.StatusListener {
+            override fun onVpnState(connected: Boolean, detail: String) {
+                if (mode != Mode.VPN) return
+                setStatus(
+                    if (connected) Status.CONNECTED_VPN else Status.FAILED,
+                    if (connected) "WARP" else detail
+                )
+            }
+        })
+    }
 
     // ------------------------------------------------------------------ Mode
 
@@ -184,6 +201,14 @@ class ProxyManager private constructor(context: Context) {
                 }
             }
             Mode.PROXY -> connectViaPool()
+            Mode.VPN -> {
+                clearProxy()
+                if (ArenaVpnService.isRunning()) {
+                    setStatus(Status.CONNECTED_VPN, "WARP")
+                } else {
+                    setStatus(Status.CHECKING)
+                }
+            }
         }
     }
 
@@ -209,6 +234,34 @@ class ProxyManager private constructor(context: Context) {
                 }
             }
             Mode.PROXY -> connectViaPool()
+            Mode.VPN -> {
+                clearProxy()
+                if (ArenaVpnService.isRunning()) {
+                    setStatus(Status.CONNECTED_VPN, "WARP")
+                } else {
+                    setStatus(Status.CHECKING)
+                }
+            }
+        }
+    }
+
+    /** Авто-эскалация: stage 1 — зеркало, 2 — пул прокси, 3 — VPN. */
+    fun applyAutoStage(stage: Int, load: (String) -> Unit) {
+        when (stage) {
+            1 -> {
+                val mirror = normalizedMirrorUrl()
+                if (mirror != null) {
+                    setStatus(Status.CONNECTED_MIRROR, mirror)
+                    mainHandler.post { load(mirror) }
+                } else {
+                    setStatus(Status.FAILED)
+                }
+            }
+            2 -> connectViaPool { load(effectiveOrigin()) }
+            3 -> {
+                // VPN запускает активность (нужен системный диалог согласия)
+                setStatus(Status.CHECKING)
+            }
         }
     }
 
@@ -248,6 +301,10 @@ class ProxyManager private constructor(context: Context) {
             Mode.PROXY -> {
                 // Текущий прокси не работает — пробуем следующий из пула.
                 connectViaPool { load(effectiveOrigin()) }
+            }
+            Mode.VPN -> {
+                // VPN не поднялся — статус уже FAILED; перезапуск делает активность.
+                setStatus(Status.FAILED)
             }
         }
     }

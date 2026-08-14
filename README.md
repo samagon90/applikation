@@ -12,9 +12,9 @@
 | targetSdk       | 35 (Gradle) / 29 (оффлайн-сборка) |
 | Язык            | Kotlin                 |
 | Зависимости     | **нет** (только платформенные API) |
-| Версия          | 2.0.1 (versionCode 3)  |
+| Версия          | 2.1.0 (versionCode 4)  |
 
-Готовый установочный файл v2.0.1: **`dist/ArenaAI-release.apk`**
+Готовый установочный файл v2.1.0: **`dist/ArenaAI-release.apk`**
 (собран без Android SDK — см. «Сборка без Android SDK»).
 APK прошлой версии: `dist/ArenaAI-v1.0.0.apk`.
 
@@ -54,6 +54,7 @@ Perplexity, Gemini, DeepSeek): минимализм, тёмная тема дл�
 | **Напрямую** | Без прокси |
 | **Зеркало** | Через ваше собственное зеркало — бесплатный Cloudflare Worker (см. `mirror/`) |
 | **Прокси** | Всегда через встроенный пул бесплатных прокси |
+| **VPN (WARP)** | Настоящий VPN: весь трафик устройства через бесплатный Cloudflare WARP |
 
 **Пул прокси:**
 - список скачивается с 3 публичных источников (TheSpeedX через jsDelivr,
@@ -67,6 +68,18 @@ Perplexity, Gemini, DeepSeek): минимализм, тёмная тема дл�
   WebSocket-стриминг ответов моделей; на Android 8–9 без этого API
   используется системный `android.net.ProxyController` через рефлексию;
 - если прокси «умирает», приложение само пробует следующий из пула.
+
+**VPN (WARP) — самый надёжный способ.** В приложении реализован
+собственный WireGuard-клиент (криптография ChaCha20-Poly1305/X25519/
+BLAKE2s написана с нуля и проверена по RFC-векторам, см.
+`scripts/test_vpn.sh`): приложение регистрирует бесплатный аккаунт
+Cloudflare WARP прямо с устройства (как публичные генераторы
+конфигов), поднимает TUN-туннель через VpnService и гоняет через него
+весь трафик устройства — включая WebView, DNS и QUIC. Это тот же
+подход, что у CyberPortal X (VPN API + WARP). Бесплатно, без
+регистрации; система покажет стандартный запрос на VPN-соединение.
+В режиме «Авто» VPN включается последним резервом, если зеркало
+и пул прокси не помогли.
 
 **Зеркало (рекомендуется для стабильной работы):** бесплатный
 Cloudflare Worker, который прозрачно проксирует arena.ai (включая
@@ -148,15 +161,23 @@ adb install dist/ArenaAI-release.apk
 ```
 app/src/main/java/ai/arena/webapp/
   MainActivity.kt            — активность: WebView, UI, шторка, оффлайн-экран
-  ProxyManager.kt            — движок подключения: режимы, пул прокси, зеркало
+  ProxyManager.kt            — движок подключения: режимы, пул прокси, зеркало, VPN
   ArenaWebViewClient.kt      — навигация, переписывание ссылок зеркала
   ArenaWebChromeClient.kt    — upload, видео, permission-запросы
+  vpn/                       — встроенный VPN (WireGuard → Cloudflare WARP)
+    ArenaVpnService.kt       — VpnService: TUN, маршрутизация, DNS
+    WireGuardSession.kt      — Noise IK-хендшейк и транспорт (без PSK)
+    TcpStack.kt              — мини-TCP/IP-стек (SYN/ACK, retransmit, окна)
+    DnsResolver.kt           — DNS через туннель (1.1.1.1) + виртуальные IP
+    WarpClient.kt            — регистрация бесплатного аккаунта WARP
+    X25519.kt / ChaCha20Poly1305.kt / Blake2s.kt / Hkdf.kt — криптография
 app/src/main/res/            — layout, drawables, строки (en/ru), темы
 mirror/
   arena-proxy-worker.js      — скрипт бесплатного зеркала (Cloudflare Worker)
   README.md                  — инструкция развёртывания за 5 минут
 scripts/
   offline_build.sh           — оффлайн-сборка APK без Gradle/Android SDK
+  test_vpn.sh                — тесты криптографии и TCP-стека (RFC-векторы)
   offline_toolchain.md       — как добыть инструменты для оффлайн-сборки
   fix_inner_classes/         — починка InnerClasses в jar из DEX (для android.jar)
 dist/
@@ -172,7 +193,10 @@ dist/
   затрагивается прокси приложения.
 - На Android 8–9 прокси включается через системный API (рефлексия) —
   на редких прошивках может не сработать; в этом случае используйте
-  зеркало (работает на всех версиях).
+  зеркало или встроенный VPN (работает на всех версиях).
+- Встроенный VPN перехватывает весь трафик устройства (системный
+  запрос разрешения). WARP-эндпоинты Cloudflare на отдельных сетях
+  могут быть недоступны — тогда приложение предложит зеркало/прокси.
 - Если хотите полноценный VPN вместо прокси: Psiphon SDK (бесплатная
   GPL-библиотека для встраивания) — конфиг выдаётся после запроса на
   psiphon.com. Код приложения к этому готов (ProxyManager изолирован).

@@ -373,6 +373,27 @@
                         android:importantForAccessibility="no" />
                 </LinearLayout>
 
+                <!-- VPN -->
+                <LinearLayout
+                    android:id="@+id/row_mode_vpn"
+                    style="@style/ConnectionRow">
+
+                    <ImageView style="@style/ConnectionRowIcon" android:src="@drawable/ic_vpn" />
+
+                    <LinearLayout style="@style/ConnectionRowTexts">
+                        <TextView style="@style/ConnectionRowTitle" android:text="@string/mode_vpn" />
+                        <TextView style="@style/ConnectionRowSubtitle" android:text="@string/mode_vpn_desc" />
+                    </LinearLayout>
+
+                    <ImageView
+                        android:id="@+id/check_vpn"
+                        android:layout_width="22dp"
+                        android:layout_height="22dp"
+                        android:layout_gravity="center_vertical"
+                        android:src="@drawable/ic_check"
+                        android:tint="@color/brand"
+                        android:importantForAccessibility="no" />
+                </LinearLayout>
                 <View
                     android:layout_width="match_parent"
                     android:layout_height="1dp"
