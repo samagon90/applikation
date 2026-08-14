@@ -17,7 +17,7 @@
         android:label="@string/app_name"
         android:supportsRtl="true"
         android:usesCleartextTraffic="false"
-        android:theme="@style/Theme.ArenaAI.Splash">
+        android:theme="@style/Theme.ArenaAI">
 
         <activity
             android:name=".MainActivity"

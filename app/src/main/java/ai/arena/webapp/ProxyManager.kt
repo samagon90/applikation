@@ -6,9 +6,6 @@ import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
-import androidx.webkit.ProxyConfig
-import androidx.webkit.ProxyController
-import org.json.JSONObject
 import java.io.BufferedReader
 import java.io.InputStreamReader
 import java.net.HttpURLConnection
@@ -18,10 +15,12 @@ import java.net.Socket
 import java.net.URL
 import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.CountDownLatch
+import java.util.concurrent.Executor
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
+import java.util.regex.Pattern
 import javax.net.ssl.SNIHostName
 import javax.net.ssl.SSLContext
 import javax.net.ssl.SSLSocket
@@ -36,10 +35,11 @@ import javax.net.ssl.SSLSocket
  *  - MIRROR  — всегда через собственное зеркало (Cloudflare Worker);
  *  - PROXY   — всегда через встроенный пул бесплатных прокси.
  *
- * Прокси применяется через официальный androidx.webkit.ProxyController
- * (Android 10+) — это проксирует весь WebView, включая WebSocket-стриминг
- * ответов моделей. На Android 7–9 используется скрытый системный API
- * через рефлексию.
+ * Прокси применяется через официальный механизм WebView
+ * (android.webkit.ProxyController, вызывается так же, как это делает
+ * библиотека androidx.webkit) — это проксирует весь WebView, включая
+ * WebSocket-стриминг ответов моделей. На устройствах без поддержки
+ * используется системный android.net.ProxyController через рефлексию.
  *
  * Список прокси скачивается из публичных бесплатных источников и проверяется
  * на устройстве (CONNECT + TLS-хендшейк к arena.ai), чтобы оставались только
@@ -188,7 +188,7 @@ class ProxyManager private constructor(context: Context) {
     }
 
     /** Переключение режима пользователем. */
-    fun setMode(newMode: Mode) {
+    fun changeMode(newMode: Mode) {
         mode = newMode
         when (newMode) {
             Mode.AUTO -> {
@@ -378,20 +378,16 @@ class ProxyManager private constructor(context: Context) {
     }
 
     private fun parseProxySource(body: String): List<Candidate> {
-        if (body.trimStart().startsWith("{")) {
-            return try {
-                val json = JSONObject(body)
-                val arr = json.optJSONArray("data") ?: return emptyList()
-                (0 until arr.length()).mapNotNull { i ->
-                    val item = arr.optJSONObject(i) ?: return@mapNotNull null
-                    val host = item.optString("ip")
-                    val port = item.optString("port")
-                    if (host.isEmpty() || port.isEmpty()) null
-                    else Candidate.parse("$host:$port")
-                }
-            } catch (e: Exception) {
-                emptyList()
+        // Geonode и подобные: {"data":[{"ip":"1.2.3.4","port":"8080",...}]}
+        // Парсим без org.json (его нет в оффлайн-варианте android.jar).
+        if (body.contains("\"data\"")) {
+            val result = mutableListOf<Candidate>()
+            val pair = Pattern.compile("\"ip\"\\s*:\\s*\"([^\"]+)\"\\s*,\\s*\"port\"\\s*:\\s*\"(\\d+)\"")
+            val m = pair.matcher(body)
+            while (m.find()) {
+                Candidate.parse("${m.group(1)}:${m.group(2)}")?.let { result += it }
             }
+            return result
         }
         return body.lines().mapNotNull { Candidate.parse(it) }
     }
@@ -460,10 +456,14 @@ class ProxyManager private constructor(context: Context) {
     // ------------------------------------------------------------- Proxy API
 
     private fun applyProxy(candidate: Candidate): Boolean {
-        val applied = if (Build.VERSION.SDK_INT >= 29) {
-            applyViaWebkit(candidate)
-        } else {
-            applyViaLegacyReflection(candidate)
+        val applied = when {
+            // Основной путь: android.webkit.ProxyController (то, что использует
+            // androidx.webkit). Работает на Chromium-WebView (Android 8+).
+            applyViaWebViewFactory(candidate) -> true
+            // Запасной путь: системный android.net.ProxyController (Android 8–9,
+            // где нет скрытого WebView API).
+            applyViaSystemProxy(candidate) -> true
+            else -> false
         }
         if (applied) {
             proxyApplied = true
@@ -475,10 +475,8 @@ class ProxyManager private constructor(context: Context) {
     private fun clearProxy() {
         if (!proxyApplied && appliedProxy == null) return
         try {
-            if (Build.VERSION.SDK_INT >= 29) {
-                ProxyController.getInstance().clearProxyOverride { }
-            } else {
-                clearViaLegacyReflection()
+            if (!clearViaWebViewFactory()) {
+                clearViaSystemProxy()
             }
         } catch (t: Throwable) {
             Log.w(TAG, "clearProxy failed", t)
@@ -487,21 +485,44 @@ class ProxyManager private constructor(context: Context) {
         appliedProxy = null
     }
 
-    private fun applyViaWebkit(candidate: Candidate): Boolean = try {
-        val config = ProxyConfig.Builder()
-            .addProxyRule(candidate.address)
-            .addDirect()
-            .build()
-        ProxyController.getInstance()
-            .setProxyOverride(config, executor, Runnable { })
+    /**
+     * WebView-прокси: WebViewFactory.getProvider().getProxyController() —
+     * тот же вызов, что делает androidx.webkit.ProxyController.
+     */
+    private fun applyViaWebViewFactory(candidate: Candidate): Boolean = try {
+        val wvFactory = Class.forName("android.webkit.WebViewFactory")
+        val provider = wvFactory.getMethod("getProvider").invoke(null)
+        val proxyController = provider.javaClass.getMethod("getProxyController").invoke(provider)
+        val proxyRules = arrayOf(arrayOf("*", "http://${candidate.address}"))
+        val setMethod = proxyController.javaClass.getMethod(
+            "setProxyOverride",
+            Array<Array<String>>::class.java,
+            Array<String>::class.java,
+            Runnable::class.java,
+            Executor::class.java
+        )
+        setMethod.invoke(proxyController, proxyRules, emptyArray<String>(), Runnable { }, executor)
         true
     } catch (t: Throwable) {
-        Log.w(TAG, "webkit ProxyController failed", t)
+        Log.w(TAG, "WebViewFactory proxy failed", t)
         false
     }
 
-    /** Android 7–9: скрытый android.net.ProxyController через рефлексию. */
-    private fun applyViaLegacyReflection(candidate: Candidate): Boolean = try {
+    private fun clearViaWebViewFactory(): Boolean = try {
+        val wvFactory = Class.forName("android.webkit.WebViewFactory")
+        val provider = wvFactory.getMethod("getProvider").invoke(null)
+        val proxyController = provider.javaClass.getMethod("getProxyController").invoke(provider)
+        val clearMethod = proxyController.javaClass.getMethod(
+            "clearProxyOverride", Runnable::class.java, Executor::class.java
+        )
+        clearMethod.invoke(proxyController, Runnable { }, executor)
+        true
+    } catch (t: Throwable) {
+        false
+    }
+
+    /** Системный прокси: android.net.ProxyController (работает на Android 8–9). */
+    private fun applyViaSystemProxy(candidate: Candidate): Boolean = try {
         val controllerClass = Class.forName("android.net.ProxyController")
         val controller = controllerClass.getMethod("getInstance").invoke(null)
         val infoClass = Class.forName("android.net.ProxyInfo")
@@ -511,11 +532,11 @@ class ProxyManager private constructor(context: Context) {
         controllerClass.getMethod("setProxyOverride", infoClass).invoke(controller, info)
         true
     } catch (t: Throwable) {
-        Log.w(TAG, "legacy ProxyController failed", t)
+        Log.w(TAG, "system ProxyController failed", t)
         false
     }
 
-    private fun clearViaLegacyReflection() {
+    private fun clearViaSystemProxy() {
         try {
             val controllerClass = Class.forName("android.net.ProxyController")
             val controller = controllerClass.getMethod("getInstance").invoke(null)

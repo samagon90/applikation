@@ -9,7 +9,7 @@ android {
 
     defaultConfig {
         applicationId = "ai.arena.webapp"
-        minSdk = 24
+        minSdk = 26
         targetSdk = 35
         versionCode = 2
         versionName = "2.0.0"
@@ -49,10 +49,6 @@ android {
 }
 
 dependencies {
-    implementation("androidx.core:core:1.9.0")
-    implementation("androidx.core:core-splashscreen:1.0.1")
-    implementation("androidx.swiperefreshlayout:swiperefreshlayout:1.1.0")
-    // ProxyController — официальный API прокси для WebView (Android 10+).
-    // Нужен для встроенного автоматического прокси.
-    implementation("androidx.webkit:webkit:1.9.0")
+    // Приложение не использует сторонних библиотек: только платформенные API.
+    // Это позволяет собирать APK полностью оффлайн (см. scripts/offline_build.sh).
 }

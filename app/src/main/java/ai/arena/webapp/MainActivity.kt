@@ -22,6 +22,7 @@ import android.os.Looper
 import android.view.HapticFeedbackConstants
 import android.view.View
 import android.view.ViewGroup
+import android.view.WindowManager
 import android.view.animation.AccelerateDecelerateInterpolator
 import android.view.animation.AccelerateInterpolator
 import android.view.animation.DecelerateInterpolator
@@ -42,12 +43,6 @@ import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
 import android.widget.Toast
-import androidx.core.content.ContextCompat
-import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
-import androidx.core.view.ViewCompat
-import androidx.core.view.WindowCompat
-import androidx.core.view.WindowInsetsCompat
-import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 
 class MainActivity : Activity(), ArenaWebChromeClient.Host, ProxyManager.Listener {
 
@@ -60,7 +55,6 @@ class MainActivity : Activity(), ArenaWebChromeClient.Host, ProxyManager.Listene
     }
 
     private lateinit var rootLayout: FrameLayout
-    private lateinit var swipeRefresh: SwipeRefreshLayout
     private lateinit var webView: WebView
     private lateinit var offlineView: View
     private lateinit var fullscreenContainer: FrameLayout
@@ -86,7 +80,7 @@ class MainActivity : Activity(), ArenaWebChromeClient.Host, ProxyManager.Listene
 
     private lateinit var proxyManager: ProxyManager
 
-    private var filePathCallback: ValueCallback<Array<Uri>>? = null
+    private var filePathCallback: ValueCallback? = null
     private var pendingPermissionRequest: PermissionRequest? = null
     private var customView: View? = null
     private var customViewCallback: WebChromeClient.CustomViewCallback? = null
@@ -94,7 +88,6 @@ class MainActivity : Activity(), ArenaWebChromeClient.Host, ProxyManager.Listene
     private var progressAnimator: ObjectAnimator? = null
     private var sheetOpen = false
     private var barVisible = true
-    private var keyboardVisible = false
     private var autoAttempts = 0
     private var lastBlockedAt = 0L
 
@@ -103,10 +96,8 @@ class MainActivity : Activity(), ArenaWebChromeClient.Host, ProxyManager.Listene
 
     @SuppressLint("SetJavaScriptEnabled")
     override fun onCreate(savedInstanceState: Bundle?) {
-        val splashScreen = installSplashScreen()
         super.onCreate(savedInstanceState)
-        splashScreen.setKeepOnScreenCondition { false }
-        WindowCompat.setDecorFitsSystemWindows(window, false)
+        setUpEdgeToEdge()
         setContentView(R.layout.activity_main)
 
         proxyManager = ProxyManager.get(this)
@@ -114,7 +105,6 @@ class MainActivity : Activity(), ArenaWebChromeClient.Host, ProxyManager.Listene
         bindViews()
         applyEdgeToEdgeInsets()
         setUpWebView()
-        setUpSwipeRefresh()
         setUpBottomBar()
         setUpChip()
         setUpSheet()
@@ -135,44 +125,48 @@ class MainActivity : Activity(), ArenaWebChromeClient.Host, ProxyManager.Listene
         }
     }
 
-    private fun bindViews() {
-        rootLayout = findViewById(R.id.root)
-        swipeRefresh = findViewById(R.id.swipe_refresh)
-        webView = findViewById(R.id.web_view)
-        offlineView = findViewById(R.id.offline_view)
-        fullscreenContainer = findViewById(R.id.fullscreen_container)
-
-        progressBar = findViewById(R.id.progress_bar)
-        chip = findViewById(R.id.connection_chip)
-        chipIcon = findViewById(R.id.chip_icon)
-        chipText = findViewById(R.id.chip_text)
-
-        bottomBar = findViewById(R.id.bottom_bar)
-        btnBack = findViewById(R.id.btn_back)
-        btnForward = findViewById(R.id.btn_forward)
-
-        offlineHint = findViewById(R.id.offline_hint)
-
-        sheetRoot = findViewById(R.id.sheet_root)
-        sheetScrim = findViewById(R.id.sheet_scrim)
-        sheetPanel = findViewById(R.id.sheet_panel)
-        sheetStatus = findViewById(R.id.sheet_status)
-        proxyStatusText = findViewById(R.id.proxy_status_text)
-        btnTestProxies = findViewById(R.id.btn_test_proxies)
-        mirrorInput = findViewById(R.id.mirror_url_input)
+    private fun setUpEdgeToEdge() {
+        // Контент под системными панелями; отступы навешивает insets-слушатель.
+        window.addFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS)
+        window.addFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_NAVIGATION)
     }
 
+    private fun bindViews() {
+        rootLayout = findViewById(R.id.root) as FrameLayout
+        webView = findViewById(R.id.web_view) as WebView
+        offlineView = findViewById(R.id.offline_view) as View
+        fullscreenContainer = findViewById(R.id.fullscreen_container) as FrameLayout
+
+        progressBar = findViewById(R.id.progress_bar) as View
+        chip = findViewById(R.id.connection_chip) as LinearLayout
+        chipIcon = findViewById(R.id.chip_icon) as ImageView
+        chipText = findViewById(R.id.chip_text) as TextView
+
+        bottomBar = findViewById(R.id.bottom_bar) as LinearLayout
+        btnBack = findViewById(R.id.btn_back) as ImageButton
+        btnForward = findViewById(R.id.btn_forward) as ImageButton
+
+        offlineHint = findViewById(R.id.offline_hint) as TextView
+
+        sheetRoot = findViewById(R.id.sheet_root) as FrameLayout
+        sheetScrim = findViewById(R.id.sheet_scrim) as View
+        sheetPanel = findViewById(R.id.sheet_panel) as ScrollView
+        sheetStatus = findViewById(R.id.sheet_status) as TextView
+        proxyStatusText = findViewById(R.id.proxy_status_text) as TextView
+        btnTestProxies = findViewById(R.id.btn_test_proxies) as Button
+        mirrorInput = findViewById(R.id.mirror_url_input) as EditText
+    }
+
+    @SuppressWarnings("deprecation")
     private fun applyEdgeToEdgeInsets() {
-        ViewCompat.setOnApplyWindowInsetsListener(rootLayout) { view, insets ->
-            val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
-            val ime = insets.getInsets(WindowInsetsCompat.Type.ime())
-            view.setPadding(bars.left, bars.top, bars.right, bars.bottom)
-            val kb = ime.bottom > 0
-            if (kb != keyboardVisible) {
-                keyboardVisible = kb
-                refreshBottomBar()
-            }
-            WindowInsetsCompat.CONSUMED
+        rootLayout.setOnApplyWindowInsetsListener { view, insets ->
+            view.setPadding(
+                insets.systemWindowInsetLeft,
+                insets.systemWindowInsetTop,
+                insets.systemWindowInsetRight,
+                insets.systemWindowInsetBottom
+            )
+            insets
         }
     }
 
@@ -211,7 +205,9 @@ class MainActivity : Activity(), ArenaWebChromeClient.Host, ProxyManager.Listene
                 proxyManager.currentState().status == ProxyManager.Status.CONNECTED_MIRROR
             },
             mirrorHost = {
-                proxyManager.normalizedMirrorUrl()?.let { runCatching { Uri.parse(it).host }.getOrNull() }
+                proxyManager.normalizedMirrorUrl()?.let {
+                    runCatching { Uri.parse(it).host }.getOrNull()
+                }
             },
             openExternal = { uri -> openExternal(uri) }
         )
@@ -229,32 +225,11 @@ class MainActivity : Activity(), ArenaWebChromeClient.Host, ProxyManager.Listene
     private fun applyDarkMode() {
         val nightMode = resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK
         val isNight = nightMode == Configuration.UI_MODE_NIGHT_YES
-        if (Build.VERSION.SDK_INT >= 33) {
-            webView.settings.isAlgorithmicDarkeningAllowed = true
-        } else if (Build.VERSION.SDK_INT >= 29) {
+        if (Build.VERSION.SDK_INT >= 29) {
             @Suppress("DEPRECATION")
             webView.settings.forceDark =
                 if (isNight) WebSettings.FORCE_DARK_ON else WebSettings.FORCE_DARK_AUTO
         }
-    }
-
-    private fun setUpSwipeRefresh() {
-        swipeRefresh.setColorSchemeResources(
-            R.color.brand,
-            R.color.brand_violet,
-            R.color.brand_cyan
-        )
-        swipeRefresh.setProgressBackgroundColorSchemeResource(R.color.surface)
-        swipeRefresh.setOnRefreshListener {
-            if (isOnline()) {
-                hideOffline()
-                loadOrigin(proxyManager.effectiveOrigin())
-            } else {
-                swipeRefresh.isRefreshing = false
-                showOffline()
-            }
-        }
-        swipeRefresh.setOnChildScrollUpCallback { _, _ -> webView.scrollY > 0 }
     }
 
     // --------------------------------------------------------- Loading / Auto
@@ -277,7 +252,6 @@ class MainActivity : Activity(), ArenaWebChromeClient.Host, ProxyManager.Listene
         mainHandler.removeCallbacks(loadTimeoutRunnable)
         stopProgress()
         autoAttempts = 0
-        swipeRefresh.isRefreshing = false
         hideOffline()
         refreshNavButtons()
     }
@@ -285,7 +259,6 @@ class MainActivity : Activity(), ArenaWebChromeClient.Host, ProxyManager.Listene
     private fun handleMainFrameBlocked() {
         mainHandler.removeCallbacks(loadTimeoutRunnable)
         stopProgress()
-        swipeRefresh.isRefreshing = false
 
         val now = System.currentTimeMillis()
         if (now - lastBlockedAt < 2_000L) return
@@ -363,11 +336,11 @@ class MainActivity : Activity(), ArenaWebChromeClient.Host, ProxyManager.Listene
     // ---------------------------------------------------------------- Bottom bar
 
     private fun setUpBottomBar() {
-        findViewById<ImageButton>(R.id.btn_back).setOnClickListener {
+        (findViewById(R.id.btn_back) as ImageButton).setOnClickListener {
             haptic()
             if (webView.canGoBack()) webView.goBack()
         }
-        findViewById<ImageButton>(R.id.btn_refresh).setOnClickListener {
+        (findViewById(R.id.btn_refresh) as ImageButton).setOnClickListener {
             haptic()
             loadOrigin(proxyManager.effectiveOrigin())
         }
@@ -375,7 +348,7 @@ class MainActivity : Activity(), ArenaWebChromeClient.Host, ProxyManager.Listene
             haptic()
             if (webView.canGoForward()) webView.goForward()
         }
-        findViewById<ImageButton>(R.id.btn_external).setOnClickListener {
+        (findViewById(R.id.btn_external) as ImageButton).setOnClickListener {
             haptic()
             val url = webView.url ?: proxyManager.effectiveOrigin()
             openExternal(Uri.parse(url))
@@ -391,12 +364,11 @@ class MainActivity : Activity(), ArenaWebChromeClient.Host, ProxyManager.Listene
     }
 
     private fun refreshBottomBar() {
-        val show = !keyboardVisible && barVisible
         val offset = (if (bottomBar.height > 0) bottomBar.height.toFloat()
         else 96f * resources.displayMetrics.density) + 40f
         bottomBar.animate()
-            .translationY(if (show) 0f else offset)
-            .alpha(if (show) 1f else 0f)
+            .translationY(if (barVisible) 0f else offset)
+            .alpha(if (barVisible) 1f else 0f)
             .setDuration(180)
             .start()
     }
@@ -414,11 +386,7 @@ class MainActivity : Activity(), ArenaWebChromeClient.Host, ProxyManager.Listene
     }
 
     private fun haptic() {
-        if (Build.VERSION.SDK_INT >= 30) {
-            rootLayout.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
-        } else if (Build.VERSION.SDK_INT >= 23) {
-            rootLayout.performHapticFeedback(HapticFeedbackConstants.CONTEXT_CLICK)
-        }
+        rootLayout.performHapticFeedback(HapticFeedbackConstants.CONTEXT_CLICK)
     }
 
     // -------------------------------------------------------------------- Chip
@@ -435,20 +403,20 @@ class MainActivity : Activity(), ArenaWebChromeClient.Host, ProxyManager.Listene
     private fun setUpSheet() {
         sheetScrim.setOnClickListener { closeSheet() }
 
-        findViewById<View>(R.id.row_mode_auto).setOnClickListener {
+        (findViewById(R.id.row_mode_auto) as View).setOnClickListener {
             haptic(); selectMode(ProxyManager.Mode.AUTO)
         }
-        findViewById<View>(R.id.row_mode_direct).setOnClickListener {
+        (findViewById(R.id.row_mode_direct) as View).setOnClickListener {
             haptic(); selectMode(ProxyManager.Mode.DIRECT)
         }
-        findViewById<View>(R.id.row_mode_mirror).setOnClickListener {
+        (findViewById(R.id.row_mode_mirror) as View).setOnClickListener {
             haptic(); selectMode(ProxyManager.Mode.MIRROR)
         }
-        findViewById<View>(R.id.row_mode_proxy).setOnClickListener {
+        (findViewById(R.id.row_mode_proxy) as View).setOnClickListener {
             haptic(); selectMode(ProxyManager.Mode.PROXY)
         }
 
-        findViewById<Button>(R.id.btn_save_mirror).setOnClickListener {
+        (findViewById(R.id.btn_save_mirror) as Button).setOnClickListener {
             saveMirror()
         }
 
@@ -477,7 +445,7 @@ class MainActivity : Activity(), ArenaWebChromeClient.Host, ProxyManager.Listene
             updateSheetChecks()
             return
         }
-        proxyManager.setMode(newMode)
+        proxyManager.changeMode(newMode)
         updateSheetChecks()
         // Перезагружаем сайт с новым способом подключения
         when (newMode) {
@@ -505,7 +473,7 @@ class MainActivity : Activity(), ArenaWebChromeClient.Host, ProxyManager.Listene
         val imm = getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
         imm.hideSoftInputFromWindow(mirrorInput.windowToken, 0)
         if (proxyManager.mode == ProxyManager.Mode.MIRROR) {
-            proxyManager.setMode(ProxyManager.Mode.MIRROR)
+            proxyManager.changeMode(ProxyManager.Mode.MIRROR)
             loadOrigin(normalized)
         }
         updateSheetUi()
@@ -544,13 +512,13 @@ class MainActivity : Activity(), ArenaWebChromeClient.Host, ProxyManager.Listene
 
     private fun updateSheetChecks() {
         val mode = proxyManager.mode
-        findViewById<View>(R.id.check_auto).visibility =
+        (findViewById(R.id.check_auto) as View).visibility =
             if (mode == ProxyManager.Mode.AUTO) View.VISIBLE else View.INVISIBLE
-        findViewById<View>(R.id.check_direct).visibility =
+        (findViewById(R.id.check_direct) as View).visibility =
             if (mode == ProxyManager.Mode.DIRECT) View.VISIBLE else View.INVISIBLE
-        findViewById<View>(R.id.check_mirror).visibility =
+        (findViewById(R.id.check_mirror) as View).visibility =
             if (mode == ProxyManager.Mode.MIRROR) View.VISIBLE else View.INVISIBLE
-        findViewById<View>(R.id.check_proxy).visibility =
+        (findViewById(R.id.check_proxy) as View).visibility =
             if (mode == ProxyManager.Mode.PROXY) View.VISIBLE else View.INVISIBLE
     }
 
@@ -569,7 +537,7 @@ class MainActivity : Activity(), ArenaWebChromeClient.Host, ProxyManager.Listene
     // ------------------------------------------------------------ ProxyManager.Listener
 
     override fun onStateChanged(state: ProxyManager.State) {
-        chipText.text = chipText(state)
+        chipText.text = chipLabel(state)
         val colorRes = when (state.status) {
             ProxyManager.Status.CONNECTED_DIRECT -> R.color.brand
             ProxyManager.Status.CONNECTED_MIRROR -> R.color.brand_cyan
@@ -578,7 +546,7 @@ class MainActivity : Activity(), ArenaWebChromeClient.Host, ProxyManager.Listene
             ProxyManager.Status.FAILED -> R.color.status_err
             ProxyManager.Status.IDLE -> R.color.brand
         }
-        chipIcon.setColorFilter(ContextCompat.getColor(this, colorRes))
+        chipIcon.setColorFilter(getColor(colorRes))
         if (sheetOpen) {
             sheetStatus.text = statusText(state)
         }
@@ -589,7 +557,8 @@ class MainActivity : Activity(), ArenaWebChromeClient.Host, ProxyManager.Listene
     private fun chipText(state: ProxyManager.State): String = when (state.status) {
         ProxyManager.Status.CONNECTED_DIRECT -> getString(R.string.mode_direct)
         ProxyManager.Status.CONNECTED_MIRROR -> getString(R.string.mode_mirror)
-        ProxyManager.Status.CONNECTED_PROXY -> getString(R.string.status_connected_proxy, state.detail)
+        ProxyManager.Status.CONNECTED_PROXY ->
+            getString(R.string.status_connected_proxy, state.detail)
         ProxyManager.Status.CHECKING -> getString(R.string.status_connecting)
         ProxyManager.Status.FAILED -> getString(R.string.status_failed)
         ProxyManager.Status.IDLE -> ""
@@ -598,7 +567,8 @@ class MainActivity : Activity(), ArenaWebChromeClient.Host, ProxyManager.Listene
     private fun statusText(state: ProxyManager.State): String = when (state.status) {
         ProxyManager.Status.CONNECTED_DIRECT -> getString(R.string.status_connected_direct)
         ProxyManager.Status.CONNECTED_MIRROR -> getString(R.string.status_connected_mirror)
-        ProxyManager.Status.CONNECTED_PROXY -> getString(R.string.status_connected_proxy, state.detail)
+        ProxyManager.Status.CONNECTED_PROXY ->
+            getString(R.string.status_connected_proxy, state.detail)
         ProxyManager.Status.CHECKING -> getString(R.string.status_checking_proxy)
         ProxyManager.Status.FAILED -> getString(R.string.status_failed)
         ProxyManager.Status.IDLE -> getString(R.string.status_idle)
@@ -607,26 +577,23 @@ class MainActivity : Activity(), ArenaWebChromeClient.Host, ProxyManager.Listene
     // ------------------------------------------------------------------ Offline
 
     private fun setUpOffline() {
-        findViewById<Button>(R.id.retry_button).setOnClickListener {
+        (findViewById(R.id.retry_button) as Button).setOnClickListener {
             haptic()
             retry()
         }
-        findViewById<Button>(R.id.open_connection_button).setOnClickListener {
+        (findViewById(R.id.open_connection_button) as Button).setOnClickListener {
             haptic()
             openSheet()
         }
     }
 
     private fun showOffline() {
-        swipeRefresh.isRefreshing = false
         offlineHint.visibility = if (isOnline()) View.VISIBLE else View.GONE
         offlineView.visibility = View.VISIBLE
-        swipeRefresh.visibility = View.GONE
     }
 
     private fun hideOffline() {
         offlineView.visibility = View.GONE
-        swipeRefresh.visibility = View.VISIBLE
     }
 
     private fun isOnline(): Boolean {
@@ -677,7 +644,7 @@ class MainActivity : Activity(), ArenaWebChromeClient.Host, ProxyManager.Listene
     // ------------------------------------------------- ArenaWebChromeClient.Host
 
     override fun onShowFileChooser(
-        callback: ValueCallback<Array<Uri>>,
+        callback: ValueCallback,
         params: WebChromeClient.FileChooserParams
     ): Boolean {
         filePathCallback?.onReceiveValue(null)
@@ -736,7 +703,6 @@ class MainActivity : Activity(), ArenaWebChromeClient.Host, ProxyManager.Listene
             )
         )
         fullscreenContainer.visibility = View.VISIBLE
-        swipeRefresh.visibility = View.GONE
         bottomBar.visibility = View.GONE
         chip.visibility = View.GONE
     }
@@ -745,7 +711,6 @@ class MainActivity : Activity(), ArenaWebChromeClient.Host, ProxyManager.Listene
         if (customView == null) return
         fullscreenContainer.removeAllViews()
         fullscreenContainer.visibility = View.GONE
-        swipeRefresh.visibility = View.VISIBLE
         bottomBar.visibility = View.VISIBLE
         chip.visibility = View.VISIBLE
         customView = null

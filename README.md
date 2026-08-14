@@ -8,15 +8,15 @@
 | Параметр        | Значение               |
 |-----------------|------------------------|
 | applicationId   | `ai.arena.webapp`      |
-| minSdk          | 24 (Android 7.0)       |
-| targetSdk       | 35 (Android 15)        |
+| minSdk          | 26 (Android 8.0)       |
+| targetSdk       | 35 (Gradle) / 29 (оффлайн-сборка) |
 | Язык            | Kotlin                 |
-| Сборка          | Gradle (Kotlin DSL)    |
+| Зависимости     | **нет** (только платформенные API) |
 | Версия          | 2.0.0 (versionCode 2)  |
 
-Готовый установочный файл: **`dist/ArenaAI-release.apk`** (создаётся при сборке;
-в репозитории лежит APK прошлой версии — `dist/ArenaAI-v1.0.0.apk`,
-для v2.0 соберите проект командой ниже).
+Готовый установочный файл v2.0.0: **`dist/ArenaAI-release.apk`**
+(собран без Android SDK — см. «Сборка без Android SDK»).
+APK прошлой версии: `dist/ArenaAI-v1.0.0.apk`.
 
 ---
 
@@ -32,9 +32,8 @@ Perplexity, Gemini, DeepSeek): минимализм, тёмная тема дл�
   страниц (как в Chrome/ChatGPT).
 - **Плавающая стеклянная панель навигации** (glass pill): назад /
   обновить / вперёд / открыть в браузере. Автоматически прячется при
-  прокрутке вниз и при открытии клавиатуры, появляется при прокрутке
-  вверх. Кнопки «назад/вперёд» подсвечивают доступность, нажатия —
-  с тактильным откликом.
+  прокрутке вниз, появляется при прокрутке вверх. Кнопки «назад/вперёд»
+  подсвечивают доступность, нажатия — с тактильным откликом.
 - **Чип статуса подключения** справа сверху: «Напрямую / Зеркало /
   Прокси · IP / Подключение…». Тап — шторка настроек.
 - **Шторка «Подключение»** (bottom sheet) с режимами, настройкой
@@ -42,7 +41,7 @@ Perplexity, Gemini, DeepSeek): минимализм, тёмная тема дл�
 - **Новый оффлайн-экран**: иконка в градиентном кольце, понятный текст,
   подсказка про блокировку, кнопки «Повторить» и «Способы подключения».
 - **Тёмная/светлая тема** по системной настройке, градиентная палитра
-  indigo → violet → cyan, обновлённые иконка приложения и сплэш.
+  indigo → violet → cyan, обновлённые иконка приложения и экран запуска.
 
 ### 🛡 Встроенный обход блокировок
 
@@ -62,10 +61,11 @@ Perplexity, Gemini, DeepSeek): минимализм, тёмная тема дл�
 - на устройстве каждый прокси проверяется по-настоящему: CONNECT-туннель
   + TLS-хендшейк к arena.ai; остаются только живые, выбираются самые
   быстрые;
-- применяется через официальный `androidx.webkit.ProxyController`
-  (Android 10+) — проксируется весь WebView, включая WebSocket-стриминг
-  ответов моделей; на Android 7–9 используется системный API через
-  рефлексию;
+- применяется через официальный механизм WebView
+  (`android.webkit.ProxyController` через `WebViewFactory` — тот же вызов,
+  что делает androidx.webkit) — проксируется весь WebView, включая
+  WebSocket-стриминг ответов моделей; на Android 8–9 без этого API
+  используется системный `android.net.ProxyController` через рефлексию;
 - если прокси «умирает», приложение само пробует следующий из пула.
 
 **Зеркало (рекомендуется для стабильной работы):** бесплатный
@@ -80,37 +80,47 @@ WebSocket и SSE). Развёртывается за 5 минут — инстр
 > входа в аккаунт предпочтительнее режим зеркала. Приложение не
 > собирает и никуда не отправляет ваши данные.
 
-### 🧩 Всё из v1.0 сохранено
+### 🧩 Прочее
 
 WebView (JS, DOM storage, cookies, кэш), загрузка/скачивание файлов,
-полноэкранное видео, камера/микрофон, pull-to-refresh, сохранение
-состояния при повороте, локализации en/ru, только HTTPS.
-
----
+полноэкранное видео, камера/микрофон, сохранение состояния при повороте,
+локализации en/ru, только HTTPS. **Никаких сторонних библиотек** —
+только платформенные API, поэтому APK маленький и собирается полностью
+оффлайн.
 
 ## Сборка
+
+### Обычная (Gradle + Android SDK)
 
 Требования: JDK 17, Android SDK platform 35, интернет для Gradle.
 
 ```bash
-# debug
-./gradlew assembleDebug
-
-# release (подписывается keystore из app/keystore/release.keystore)
 ./gradlew assembleRelease
 # результат: app/build/outputs/apk/release/app-release.apk
 ```
 
-Новая зависимость: `androidx.webkit:webkit` (ProxyController для
-встроенного прокси).
+### Без Android SDK (полностью оффлайн)
 
-### Оффлайн-сборка (без доступа к Maven)
+Готовый пайплайн `scripts/offline_build.sh` повторяет сборку вручную:
+`aapt2 → kotlinc → dx → jarsigner`. Все инструменты берутся из
+доступных источников (npm, исходники на GitHub) — полная инструкция
+по их получению: [`scripts/offline_toolchain.md`](scripts/offline_toolchain.md).
 
-`scripts/offline_build.sh` повторяет пайплайн Gradle вручную
-(aapt2 → kotlinc → d8 → zipalign → apksigner). Дополнительно к
-прежним требованиям нужен извлечённый AAR `androidx.webkit` в
-`LIBS_DIR` (как для остальных библиотек: `ext/webkit/{classes.jar,res,AndroidManifest.xml}`).
-Пароль keystore передаётся в скрипте (см. ниже).
+```bash
+export JAVA_HOME=/path/to/jre17
+export KOTLIN_COMPILER_JAR=/path/to/kotlin-compiler.jar
+export KOTLIN_STDLIB_JAR=/path/to/kotlin-stdlib-clean.jar
+export AAPT2=/path/to/aapt2
+export ANDROID_JAR=/path/to/framework-fixed.jar
+export FRAMEWORK_RES=/path/to/framework-res.apk
+export DX_CLASSES=/path/to/dx-classes
+bash scripts/offline_build.sh
+# результат: dist/ArenaAI-release.apk (подписан keystore из репозитория)
+```
+
+> Примечание: оффлайн-вариант собирается против Android 9 (API 28/29)
+> framework, поэтому APK имеет `targetSdk 29`; Gradle-сборка использует
+> полноценный SDK и `targetSdk 35`.
 
 ## Подпись
 
@@ -131,7 +141,7 @@ adb install dist/ArenaAI-release.apk
 ```
 
 Либо передайте APK на телефон (мессенджер, USB, облако), откройте файл
-и разрешите установку из неизвестных источников. Android 7.0+.
+и разрешите установку из неизвестных источников. Android 8.0+.
 
 ## Структура проекта
 
@@ -145,8 +155,13 @@ app/src/main/res/            — layout, drawables, строки (en/ru), тем
 mirror/
   arena-proxy-worker.js      — скрипт бесплатного зеркала (Cloudflare Worker)
   README.md                  — инструкция развёртывания за 5 минут
-scripts/offline_build.sh     — оффлайн-сборка APK без Gradle
-dist/ArenaAI-v1.0.0.apk     — APK прошлой версии (v1.0.0)
+scripts/
+  offline_build.sh           — оффлайн-сборка APK без Gradle/Android SDK
+  offline_toolchain.md       — как добыть инструменты для оффлайн-сборки
+  fix_inner_classes/         — починка InnerClasses в jar из DEX (для android.jar)
+dist/
+  ArenaAI-release.apk        — готовый подписанный APK v2.0.0
+  ArenaAI-v1.0.0.apk         — APK прошлой версии
 ```
 
 ## Ограничения
@@ -155,7 +170,7 @@ dist/ArenaAI-v1.0.0.apk     — APK прошлой версии (v1.0.0)
 - Push-уведомления (FCM) не реализованы.
 - Скачивания идут через системный `DownloadManager`, который **не**
   затрагивается прокси приложения.
-- На Android 7–9 прокси включается через скрытый системный API —
+- На Android 8–9 прокси включается через системный API (рефлексия) —
   на редких прошивках может не сработать; в этом случае используйте
   зеркало (работает на всех версиях).
 - Если хотите полноценный VPN вместо прокси: Psiphon SDK (бесплатная

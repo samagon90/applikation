@@ -1,15 +1,20 @@
 #!/usr/bin/env bash
 # ============================================================================
-# Оффлайн-сборка release APK без Gradle (для окружений без доступа к Maven).
-# Обычная сборка: ./gradlew assembleRelease (см. README.md).
+# Оффлайн-сборка release APK без Gradle и без доступа к Maven/Google.
+# Полностью автономный пайплайн:
+#   aapt2 (ресурсы) -> kotlinc (Kotlin) -> dx (DEX) -> jarsigner (подпись)
 #
-# Требуемые инструменты (пути передаются через переменные окружения):
-#   JAVA_HOME      - JDK/JRE 17+
-#   KOTLINC        - каталог kotlinc (bin/kotlinc)
-#   BUILD_TOOLS    - Android build-tools (aapt2, zipalign, lib/d8.jar, lib/apksigner.jar)
-#   PLATFORM_JAR   - android.jar (API 35)
-#   LIBS_DIR       - каталог с извлечёнными AAR (ext/<name>/{classes.jar,res,AndroidManifest.xml})
-#   JARS_DIR       - каталог с чистыми jar-зависимостями
+# Требуемые инструменты (пути через переменные окружения):
+#   JAVA_HOME       - JDK/JRE 17+ (java, javac, jarsigner, keytool)
+#   KOTLIN_COMPILER_JAR - kotlin-compiler.jar (K2JVMCompiler)
+#   KOTLIN_STDLIB_JAR   - kotlin-stdlib.jar (без META-INF/versions и indy-классов)
+#   AAPT2           - бинарник aapt2 (linux x86_64)
+#   ANDROID_JAR     - jar с классами платформы (compile classpath)
+#   FRAMEWORK_RES   - framework-res.apk (таблица ресурсов для aapt2 -I)
+#   DX_CLASSES      - каталог с классами com/android/dx (собранный dx)
+#
+# Как получить инструменты в изолированной среде - см. README.md,
+# раздел «Сборка без Android SDK».
 # ============================================================================
 set -euo pipefail
 
@@ -20,96 +25,67 @@ APK_DIR="$APP/build/outputs/apk/release"
 DIST="$ROOT/dist"
 
 JAVA="$JAVA_HOME/bin/java"
-AAPT2="$BUILD_TOOLS/aapt2"
-ZIPALIGN="$BUILD_TOOLS/zipalign"
-D8_JAR="$BUILD_TOOLS/lib/d8.jar"
-APKSIGNER_JAR="$BUILD_TOOLS/lib/apksigner.jar"
+JARSIGNER="$JAVA_HOME/bin/jarsigner"
 
-MIN_SDK=24
-TARGET_SDK=35
+MIN_SDK=26
+TARGET_SDK=29
 VERSION_CODE=2
 VERSION_NAME="2.0.0"
 APP_ID="ai.arena.webapp"
 
-# Примечание: для сборки v2 нужен AAR androidx.webkit (ProxyController),
-# извлечённый в LIBS_DIR, как и остальные библиотеки:
-#   ext/webkit/{classes.jar,res,AndroidManifest.xml}
-
 rm -rf "$OUT" && mkdir -p "$OUT"/{flat,gen,classes,dex,apk} "$APK_DIR" "$DIST"
 
-echo "==> [1/8] Merged AndroidManifest"
+echo "==> [1/7] Merged AndroidManifest"
 python3 "$ROOT/scripts/merge_manifest.py" \
     "$APP/src/main/AndroidManifest.xml" "$OUT/AndroidManifest.xml" \
     "$APP_ID" "$MIN_SDK" "$TARGET_SDK"
 
-echo "==> [2/8] aapt2 compile (app + libraries)"
+echo "==> [2/7] aapt2 compile"
 "$AAPT2" compile --dir "$APP/src/main/res" -o "$OUT/flat/app.zip"
-for d in "$LIBS_DIR"/*/; do
-    name="$(basename "$d")"
-    if [ -d "$d/res" ] && [ -n "$(find "$d/res" -type f 2>/dev/null | head -1)" ]; then
-        "$AAPT2" compile --dir "$d/res" -o "$OUT/flat/lib-$name.zip"
-    fi
-done
 
-echo "==> [3/8] aapt2 link"
-LINK_ARGS=(
-    -o "$OUT/apk/base.apk"
-    -I "$PLATFORM_JAR"
-    --manifest "$OUT/AndroidManifest.xml"
-    --min-sdk-version "$MIN_SDK" --target-sdk-version "$TARGET_SDK"
-    --version-code "$VERSION_CODE" --version-name "$VERSION_NAME"
-    --auto-add-overlay
-    --output-text-symbols "$OUT/R.txt"
-)
-for f in "$OUT"/flat/lib-*.zip; do LINK_ARGS+=("$f"); done
-LINK_ARGS+=("$OUT/flat/app.zip")
-"$AAPT2" link "${LINK_ARGS[@]}"
+echo "==> [3/7] aapt2 link (framework-res.apk как -I)"
+"$AAPT2" link \
+    -o "$OUT/apk/base.apk" \
+    -I "$FRAMEWORK_RES" \
+    --manifest "$OUT/AndroidManifest.xml" \
+    --min-sdk-version "$MIN_SDK" --target-sdk-version "$TARGET_SDK" \
+    --version-code "$VERSION_CODE" --version-name "$VERSION_NAME" \
+    --auto-add-overlay \
+    --output-text-symbols "$OUT/R.txt" \
+    "$OUT/flat/app.zip"
 
-echo "==> [4/8] Generate R classes (Kotlin)"
-R_PACKAGES="$APP_ID"
-for d in "$LIBS_DIR"/*/; do
-    pkg="$(grep -o 'package="[^"]*"' "$d/AndroidManifest.xml" | head -1 | cut -d'"' -f2)"
-    R_PACKAGES="$R_PACKAGES,$pkg"
-done
-python3 "$ROOT/scripts/gen_r_kotlin.py" "$OUT/R.txt" "$OUT/gen" "$R_PACKAGES"
+echo "==> [4/7] Generate R classes (Kotlin)"
+python3 "$ROOT/scripts/gen_r_kotlin.py" "$OUT/R.txt" "$OUT/gen" "$APP_ID"
 
-echo "==> [5/8] kotlinc"
-CP="$PLATFORM_JAR"
-for j in "$JARS_DIR"/*.jar; do CP="$CP:$j"; done
-for d in "$LIBS_DIR"/*/; do [ -f "$d/classes.jar" ] && CP="$CP:$d/classes.jar"; done
-JAVA_HOME="$JAVA_HOME" "$KOTLINC/bin/kotlinc" \
-    -classpath "$CP" \
-    -jvm-target 17 -no-reflect \
+echo "==> [5/7] kotlinc"
+"$JAVA" -Xmx2g -cp "$KOTLIN_COMPILER_JAR" org.jetbrains.kotlin.cli.jvm.K2JVMCompiler \
+    -classpath "$ANDROID_JAR" \
+    -jvm-target 1.8 \
+    -no-reflect \
     -d "$OUT/classes" \
     $(find "$APP/src/main/java" -name '*.kt') \
     $(find "$OUT/gen" -name '*.kt') 2>&1 | grep -v "^warning:" || true
+test -n "$(find "$OUT/classes" -name '*.class' | head -1)"
 
-echo "==> [6/8] d8 (dex)"
+echo "==> [6/7] dx (classes -> DEX)"
 cd "$OUT/classes" && zip -qr "$OUT/app-classes.jar" . && cd "$ROOT"
-D8_INPUTS=("$OUT/app-classes.jar")
-for d in "$LIBS_DIR"/*/; do [ -f "$d/classes.jar" ] && D8_INPUTS+=("$d/classes.jar"); done
-for j in "$JARS_DIR"/*.jar; do D8_INPUTS+=("$j"); done
-"$JAVA" -cp "$D8_JAR" com.android.tools.r8.D8 \
-    --release --min-api "$MIN_SDK" \
-    --lib "$PLATFORM_JAR" \
-    --output "$OUT/dex" \
-    "${D8_INPUTS[@]}"
+"$JAVA" -cp "$DX_CLASSES" com.android.dx.command.Main --dex \
+    --min-sdk-version "$MIN_SDK" \
+    --output="$OUT/dex" \
+    "$OUT/app-classes.jar" \
+    "$KOTLIN_STDLIB_JAR"
 test -f "$OUT/dex/classes.dex"
 
-echo "==> [7/8] Package + zipalign"
+echo "==> [7/7] Package + sign (jarsigner, v1)"
 cp "$OUT/apk/base.apk" "$OUT/apk/unsigned.apk"
-cd "$OUT/dex" && zip -q "$OUT/apk/unsigned.apk" classes*.dex && cd "$ROOT"
-"$ZIPALIGN" -f -p 4 "$OUT/apk/unsigned.apk" "$OUT/apk/aligned.apk"
+cd "$OUT/dex" && zip -q "$OUT/apk/unsigned.apk" classes.dex && cd "$ROOT"
+"$JARSIGNER" -keystore "$APP/keystore/release.keystore" \
+    -storepass arenaai123 -keypass arenaai123 \
+    -sigfile CERT -digestalg SHA-256 -sigalg SHA256withRSA \
+    "$OUT/apk/unsigned.apk" arena
+"$JARSIGNER" -verify "$OUT/apk/unsigned.apk" | head -3
 
-echo "==> [8/8] apksigner"
-"$JAVA" -jar "$APKSIGNER_JAR" sign \
-    --ks "$APP/keystore/release.keystore" \
-    --ks-pass pass:arenaai123 --key-pass pass:arenaai123 \
-    --ks-key-alias arena \
-    --out "$APK_DIR/app-release.apk" \
-    "$OUT/apk/aligned.apk"
-"$JAVA" -jar "$APKSIGNER_JAR" verify --print-certs "$APK_DIR/app-release.apk" | head -5
-
+cp "$OUT/apk/unsigned.apk" "$APK_DIR/app-release.apk"
 cp "$APK_DIR/app-release.apk" "$DIST/ArenaAI-release.apk"
 echo ""
 echo "APK: $APK_DIR/app-release.apk"
