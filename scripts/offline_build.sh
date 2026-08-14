@@ -27,10 +27,10 @@ DIST="$ROOT/dist"
 JAVA="$JAVA_HOME/bin/java"
 JARSIGNER="$JAVA_HOME/bin/jarsigner"
 
-MIN_SDK=26
+MIN_SDK=24
 TARGET_SDK=29
-VERSION_CODE=6
-VERSION_NAME="2.3.0"
+VERSION_CODE=7
+VERSION_NAME="3.0.0"
 APP_ID="ai.arena.webapp"
 
 rm -rf "$OUT" && mkdir -p "$OUT"/{flat,gen,classes,dex,apk} "$APK_DIR" "$DIST"

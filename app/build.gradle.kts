@@ -9,10 +9,10 @@ android {
 
     defaultConfig {
         applicationId = "ai.arena.webapp"
-        minSdk = 26
+        minSdk = 24
         targetSdk = 35
-        versionCode = 6
-        versionName = "2.3.0"
+        versionCode = 7
+        versionName = "3.0.0"
     }
 
     signingConfigs {

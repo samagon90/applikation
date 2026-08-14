@@ -9,38 +9,21 @@ import android.webkit.WebView
 import android.webkit.WebViewClient
 
 /**
- * Навигация внутри arena.ai / lmarena.ai (+ зеркало, если активно),
- * всё остальное (другие домены, mailto:, tel:, intent:) — системе.
- * В режиме зеркала абсолютные ссылки на arena.ai переписываются
- * на домен зеркала.
+ * Навигация: внутри arena.ai / lmarena.ai, всё остальное
+ * (другие домены, mailto:, tel:, intent:) — системе.
  */
 class ArenaWebViewClient(
     private val onPageStarted: () -> Unit,
     private val onPageFinished: () -> Unit,
     private val onMainFrameError: () -> Unit,
     private val onMainFrameHttpError: (Int) -> Unit,
-    private val isMirrorActive: () -> Boolean,
-    private val mirrorHost: () -> String?,
     private val openExternal: (Uri) -> Unit
 ) : WebViewClient() {
 
-    companion object {
-        private val INTERNAL_HOSTS = listOf("arena.ai", "lmarena.ai")
-    }
-
     private fun isInternalHost(host: String): Boolean {
         if (host.isEmpty()) return false
-        val mirror = mirrorHost()
-        if (mirror != null && host == mirror) return true
-        return INTERNAL_HOSTS.any { h -> host == h || host.endsWith(".$h") }
-    }
-
-    private fun rewrittenUri(uri: Uri): Uri {
-        val mirror = if (isMirrorActive()) mirrorHost() else null
-        if (mirror == null) return uri
-        val host = uri.host?.lowercase().orEmpty()
-        val isArena = INTERNAL_HOSTS.any { h -> host == h || host.endsWith(".$h") }
-        return if (isArena) uri.buildUpon().scheme("https").authority(mirror).build() else uri
+        return host == "arena.ai" || host.endsWith(".arena.ai") ||
+            host == "lmarena.ai" || host.endsWith(".lmarena.ai")
     }
 
     override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
@@ -48,11 +31,6 @@ class ArenaWebViewClient(
         val scheme = uri.scheme?.lowercase()
         if (scheme == "http" || scheme == "https") {
             if (isInternalHost(uri.host?.lowercase().orEmpty())) {
-                val rewritten = rewrittenUri(uri)
-                if (rewritten != uri) {
-                    view.loadUrl(rewritten.toString())
-                    return true
-                }
                 return false
             }
         }

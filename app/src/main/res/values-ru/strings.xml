@@ -2,62 +2,22 @@
 <resources>
     <!-- Оффлайн-экран -->
     <string name="offline_title">Не удаётся открыть Arena</string>
-    <string name="offline_message">Проверьте интернет или смените способ подключения.</string>
-    <string name="offline_hint">Похоже, сайт недоступен из вашей сети. Включите встроенный прокси или зеркало.</string>
+    <string name="offline_message">Проверьте подключение к интернету и попробуйте ещё раз.</string>
     <string name="retry">Повторить</string>
     <string name="still_offline">Интернет по-прежнему недоступен</string>
-    <string name="connection_methods">Способы подключения</string>
 
     <!-- Навигация -->
     <string name="nav_back">Назад</string>
     <string name="nav_refresh">Обновить</string>
     <string name="nav_forward">Вперёд</string>
     <string name="nav_share">Поделиться</string>
-    <string name="nav_external">Открыть в браузере</string>
 
-    <!-- Шторка подключения -->
-    <string name="sheet_title">Подключение</string>
-    <string name="mode_auto">Авто</string>
-    <string name="mode_auto_desc">Напрямую; если сайт недоступен — прокси или зеркало включаются сами</string>
-    <string name="mode_direct">Напрямую</string>
-    <string name="mode_direct_short">Прямо</string>
-    <string name="mode_direct_desc">Всегда подключаться напрямую, без прокси</string>
-    <string name="mode_mirror">Зеркало</string>
-    <string name="mode_mirror_desc">Через собственное зеркало (бесплатный Cloudflare Worker)</string>
-    <string name="mode_proxy">Прокси</string>
-    <string name="mode_proxy_desc">Всегда использовать встроенный пул бесплатных прокси</string>
-    <string name="mode_vpn">VPN</string>
-    <string name="mode_vpn_desc">Автоподбор SOCKS5-прокси из интернета и туннель всего трафика устройства</string>
-    <string name="mirror_section_title">Ваше зеркало</string>
-    <string name="mirror_switch_title">Зеркало</string>
-    <string name="mirror_switch_desc">Открывать сайт через ваш Cloudflare Worker</string>
-    <string name="proxy_pool_title">Пул прокси</string>
-    <string name="mirror_section_hint">Бесплатно и надёжнее всего: разверните скрипт из репозитория приложения (папка mirror/) в Cloudflare и вставьте сюда его URL.</string>
-    <string name="mirror_url_hint">https://your-worker.workers.dev</string>
-    <string name="mirror_save">Сохранить зеркало</string>
-    <string name="mirror_saved">Зеркало сохранено</string>
-    <string name="mirror_invalid">Введите корректный URL, например https://example.workers.dev</string>
-    <string name="mirror_empty">Сначала добавьте URL зеркала</string>
-    <string name="proxy_test">Проверить прокси</string>
-    <string name="proxy_testing">Проверяю пул прокси…</string>
-    <string name="proxy_test_result">Рабочих прокси найдено: %1$d</string>
-    <string name="proxy_test_none">Рабочих прокси не найдено. Повторите или настройте зеркало.</string>
-
-    <!-- Статусы -->
-    <string name="status_connected_direct">Подключено напрямую</string>
-    <string name="status_connected_mirror">Подключено через зеркало</string>
-    <string name="status_connected_proxy">Подключено через прокси · %1$s</string>
-    <string name="status_connected_vpn">VPN · SOCKS5 %1$s</string>
-    <string name="status_vpn_searching">Ищу SOCKS5-прокси…</string>
-    <string name="status_vpn_no_proxies">Рабочих SOCKS5-прокси не найдено. Повторите или настройте зеркало.</string>
-    <string name="status_vpn_error">Ошибка VPN: %1$s</string>
-    <string name="notif_vpn_text">VPN · туннель SOCKS5</string>
-    <string name="vpn_denied">Разрешение на VPN отклонено</string>
-    <string name="vpn_no_intent">Не удалось показать диалог разрешения VPN</string>
-    <string name="status_connecting">Подключение…</string>
-    <string name="status_checking_proxy">Ищу прокси…</string>
-    <string name="status_failed">Нет соединения</string>
-    <string name="status_idle">Ожидание</string>
+    <!-- AI-помощник -->
+    <string name="assistant_title">AI-помощник</string>
+    <string name="assistant_subtitle">Модели · Промпты · Путеводитель</string>
+    <string name="assistant_hint">Спросите о моделях, промптах или сайте…</string>
+    <string name="assistant_send">Отправить</string>
+    <string name="assistant_typing">Думаю…</string>
 
     <!-- Прочее -->
     <string name="no_app_for_link">Нет приложения для открытия этой ссылки</string>

@@ -5,7 +5,7 @@
     android:layout_height="match_parent"
     android:background="@color/ios_background">
 
-    <!-- Основная колонка: панели фиксированы, WebView занимает остаток (без наложений) -->
+    <!-- Основная колонка: панели фиксированы, WebView занимает остаток -->
     <LinearLayout
         android:id="@+id/main_column"
         android:layout_width="match_parent"
@@ -34,36 +34,18 @@
                 android:contentDescription="@string/nav_back"
                 android:visibility="invisible" />
 
-            <LinearLayout
+            <TextView
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:layout_marginStart="8dp"
                 android:layout_marginEnd="8dp"
-                android:orientation="vertical"
-                android:gravity="center">
-
-                <TextView
-                    android:id="@+id/title"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:fontFamily="sans-serif-medium"
-                    android:text="@string/app_name"
-                    android:textColor="@color/ios_text"
-                    android:textSize="16sp"
-                    android:singleLine="true"
-                    android:gravity="center" />
-
-                <TextView
-                    android:id="@+id/status_subtitle"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="@string/status_idle"
-                    android:textColor="@color/ios_text_secondary"
-                    android:textSize="10sp"
-                    android:singleLine="true"
-                    android:gravity="center" />
-            </LinearLayout>
+                android:fontFamily="sans-serif-medium"
+                android:text="@string/app_name"
+                android:textColor="@color/ios_text"
+                android:textSize="16sp"
+                android:singleLine="true"
+                android:gravity="center" />
 
             <Space
                 android:layout_width="44dp"
@@ -156,18 +138,6 @@
                         android:gravity="center"
                         android:lineSpacingExtra="3dp" />
 
-                    <TextView
-                        android:id="@+id/offline_hint"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="18dp"
-                        android:text="@string/offline_hint"
-                        android:textColor="@color/ios_text_tertiary"
-                        android:textSize="13sp"
-                        android:gravity="center"
-                        android:lineSpacingExtra="2dp"
-                        android:visibility="gone" />
-
                     <Button
                         android:id="@+id/retry_button"
                         android:layout_width="match_parent"
@@ -180,17 +150,6 @@
                         android:textColor="#FFFFFF"
                         android:textSize="16sp"
                         android:fontFamily="sans-serif-medium" />
-
-                    <Button
-                        android:id="@+id/open_connection_button"
-                        android:layout_width="wrap_content"
-                        android:layout_height="46dp"
-                        android:layout_marginTop="6dp"
-                        android:background="@android:color/transparent"
-                        android:text="@string/connection_methods"
-                        android:textAllCaps="false"
-                        android:textColor="@color/ios_blue"
-                        android:textSize="15sp" />
                 </LinearLayout>
             </ScrollView>
         </FrameLayout>
@@ -244,7 +203,7 @@
 
             <FrameLayout
                 android:layout_width="0dp"
-                android:layout_height="match_parent"
+                android:layout_height="48dp"
                 android:layout_weight="1">
 
                 <ImageButton
@@ -265,24 +224,15 @@
                 android:layout_weight="1">
 
                 <ImageButton
-                    android:id="@+id/btn_shield"
+                    android:id="@+id/btn_assistant"
                     android:layout_width="48dp"
                     android:layout_height="48dp"
                     android:layout_gravity="center"
                     android:background="?android:attr/selectableItemBackgroundBorderless"
-                    android:src="@drawable/ic_ios_shield"
+                    android:src="@drawable/ic_ai_sparkle"
                     android:tint="@color/ios_blue"
                     android:scaleType="centerInside"
-                    android:contentDescription="@string/sheet_title" />
-
-                <View
-                    android:id="@+id/status_dot"
-                    android:layout_width="9dp"
-                    android:layout_height="9dp"
-                    android:layout_gravity="top|end"
-                    android:layout_marginTop="9dp"
-                    android:layout_marginEnd="9dp"
-                    android:background="@drawable/bg_ios_dot" />
+                    android:contentDescription="@string/assistant_title" />
             </FrameLayout>
 
             <FrameLayout
@@ -312,7 +262,7 @@
         android:background="@android:color/black"
         android:visibility="gone" />
 
-    <!-- Шторка «Подключение» (iOS bottom sheet) -->
+    <!-- Шторка AI-помощника (iOS bottom sheet) -->
     <FrameLayout
         android:id="@+id/sheet_root"
         android:layout_width="match_parent"
@@ -328,234 +278,155 @@
             android:clickable="true"
             android:focusable="true" />
 
-        <ScrollView
+        <LinearLayout
             android:id="@+id/sheet_panel"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_gravity="bottom"
+            android:orientation="vertical"
             android:background="@drawable/bg_ios_sheet"
-            android:elevation="24dp"
-            android:overScrollMode="never">
+            android:elevation="24dp">
 
+            <!-- Заголовок (тянущаяся область) -->
             <LinearLayout
+                android:id="@+id/sheet_header"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
                 android:paddingStart="20dp"
-                android:paddingEnd="20dp"
-                android:paddingBottom="28dp">
+                android:paddingEnd="20dp">
 
-                <!-- Заголовок (тянущаяся область) -->
-                <LinearLayout
-                    android:id="@+id/sheet_header"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical">
+                <View
+                    android:layout_width="36dp"
+                    android:layout_height="5dp"
+                    android:layout_gravity="center_horizontal"
+                    android:layout_marginTop="10dp"
+                    android:background="@drawable/bg_ios_handle" />
 
-                    <View
-                        android:layout_width="36dp"
-                        android:layout_height="5dp"
-                        android:layout_gravity="center_horizontal"
-                        android:layout_marginTop="10dp"
-                        android:background="@drawable/bg_ios_handle" />
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="16dp"
-                        android:fontFamily="sans-serif-medium"
-                        android:text="@string/sheet_title"
-                        android:textColor="@color/ios_text"
-                        android:textSize="22sp" />
-
-                    <TextView
-                        android:id="@+id/sheet_status"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="3dp"
-                        android:text="@string/status_idle"
-                        android:textColor="@color/ios_text_secondary"
-                        android:textSize="13sp" />
-                </LinearLayout>
-
-                <!-- Сегментированный контрол режимов -->
-                <ai.arena.webapp.ui.SegmentedControl
-                    android:id="@+id/mode_segments"
-                    android:layout_width="match_parent"
-                    android:layout_height="34dp"
-                    android:layout_marginTop="18dp" />
-
-                <!-- Карточка: зеркало -->
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="22dp"
-                    android:orientation="vertical"
-                    android:paddingStart="16dp"
-                    android:paddingEnd="16dp"
-                    android:background="@drawable/bg_ios_card">
-
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:orientation="horizontal"
-                        android:gravity="center_vertical"
-                        android:paddingTop="12dp"
-                        android:paddingBottom="12dp">
-
-                        <ImageView
-                            android:layout_width="22dp"
-                            android:layout_height="22dp"
-                            android:src="@drawable/ic_ios_link"
-                            android:tint="@color/ios_blue"
-                            android:importantForAccessibility="no" />
-
-                        <LinearLayout
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:layout_marginStart="12dp"
-                            android:orientation="vertical">
-
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:fontFamily="sans-serif-medium"
-                                android:text="@string/mirror_switch_title"
-                                android:textColor="@color/ios_text"
-                                android:textSize="15sp" />
-
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:layout_marginTop="2dp"
-                                android:text="@string/mirror_switch_desc"
-                                android:textColor="@color/ios_text_secondary"
-                                android:textSize="12sp" />
-                        </LinearLayout>
-
-                        <ai.arena.webapp.ui.SwitchView
-                            android:id="@+id/mirror_switch"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content" />
-                    </LinearLayout>
-
-                    <View
-                        android:layout_width="match_parent"
-                        android:layout_height="0.5dp"
-                        android:background="@color/ios_separator" />
-
-                    <LinearLayout
-                        android:id="@+id/mirror_config"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:orientation="vertical"
-                        android:paddingTop="14dp"
-                        android:paddingBottom="16dp"
-                        android:visibility="gone">
-
-                        <EditText
-                            android:id="@+id/mirror_url_input"
-                            android:layout_width="match_parent"
-                            android:layout_height="46dp"
-                            android:background="@drawable/bg_ios_field"
-                            android:hint="@string/mirror_url_hint"
-                            android:textColorHint="@color/ios_text_tertiary"
-                            android:textColor="@color/ios_text"
-                            android:textSize="14sp"
-                            android:inputType="textUri"
-                            android:maxLines="1"
-                            android:paddingStart="14dp"
-                            android:paddingEnd="14dp"
-                            android:importantForAutofill="no" />
-
-                        <Button
-                            android:id="@+id/btn_save_mirror"
-                            android:layout_width="match_parent"
-                            android:layout_height="42dp"
-                            android:layout_marginTop="10dp"
-                            android:background="@drawable/bg_ios_button_primary"
-                            android:stateListAnimator="@null"
-                            android:text="@string/mirror_save"
-                            android:textAllCaps="false"
-                            android:textColor="#FFFFFF"
-                            android:textSize="14sp"
-                            android:fontFamily="sans-serif-medium" />
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="10dp"
-                            android:text="@string/mirror_section_hint"
-                            android:textColor="@color/ios_text_tertiary"
-                            android:textSize="12sp"
-                            android:lineSpacingExtra="2dp" />
-                    </LinearLayout>
-                </LinearLayout>
-
-                <!-- Карточка: пул прокси -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="14dp"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical">
+
+                    <ImageView
+                        android:layout_width="26dp"
+                        android:layout_height="26dp"
+                        android:src="@drawable/ic_ai_sparkle"
+                        android:tint="@color/ios_blue"
+                        android:importantForAccessibility="no" />
+
+                    <LinearLayout
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="10dp"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:fontFamily="sans-serif-medium"
+                            android:text="@string/assistant_title"
+                            android:textColor="@color/ios_text"
+                            android:textSize="20sp" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="2dp"
+                            android:text="@string/assistant_subtitle"
+                            android:textColor="@color/ios_text_secondary"
+                            android:textSize="12sp" />
+                    </LinearLayout>
+                </LinearLayout>
+
+                <!-- Быстрые подсказки -->
+                <HorizontalScrollView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:layout_marginBottom="10dp"
+                    android:scrollbars="none"
+                    android:overScrollMode="never">
+
+                    <LinearLayout
+                        android:id="@+id/chips_container"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal" />
+                </HorizontalScrollView>
+            </LinearLayout>
+
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="0.5dp"
+                android:background="@color/ios_separator" />
+
+            <!-- Чат -->
+            <ScrollView
+                android:id="@+id/chat_scroll"
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:fillViewport="true"
+                android:overScrollMode="never">
+
+                <LinearLayout
+                    android:id="@+id/chat_container"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
                     android:orientation="vertical"
                     android:paddingStart="16dp"
                     android:paddingEnd="16dp"
-                    android:background="@drawable/bg_ios_card">
+                    android:paddingTop="12dp"
+                    android:paddingBottom="8dp" />
+            </ScrollView>
 
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:orientation="horizontal"
-                        android:gravity="center_vertical"
-                        android:paddingTop="12dp"
-                        android:paddingBottom="12dp">
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="0.5dp"
+                android:background="@color/ios_separator" />
 
-                        <ImageView
-                            android:layout_width="22dp"
-                            android:layout_height="22dp"
-                            android:src="@drawable/ic_ios_server"
-                            android:tint="@color/ios_blue"
-                            android:importantForAccessibility="no" />
+            <!-- Ввод -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:paddingStart="12dp"
+                android:paddingEnd="12dp"
+                android:paddingTop="8dp"
+                android:paddingBottom="8dp">
 
-                        <LinearLayout
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:layout_marginStart="12dp"
-                            android:orientation="vertical">
+                <EditText
+                    android:id="@+id/assistant_input"
+                    android:layout_width="0dp"
+                    android:layout_height="42dp"
+                    android:layout_weight="1"
+                    android:background="@drawable/bg_ios_field"
+                    android:hint="@string/assistant_hint"
+                    android:textColorHint="@color/ios_text_tertiary"
+                    android:textColor="@color/ios_text"
+                    android:textSize="14sp"
+                    android:inputType="textCapSentences|textMultiLine"
+                    android:imeOptions="actionSend"
+                    android:maxLines="3"
+                    android:paddingStart="14dp"
+                    android:paddingEnd="14dp"
+                    android:importantForAutofill="no" />
 
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:fontFamily="sans-serif-medium"
-                                android:text="@string/proxy_pool_title"
-                                android:textColor="@color/ios_text"
-                                android:textSize="15sp" />
-
-                            <TextView
-                                android:id="@+id/proxy_status_text"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:layout_marginTop="2dp"
-                                android:text="@string/proxy_test"
-                                android:textColor="@color/ios_text_secondary"
-                                android:textSize="12sp" />
-                        </LinearLayout>
-
-                        <Button
-                            android:id="@+id/btn_test_proxies"
-                            android:layout_width="wrap_content"
-                            android:layout_height="42dp"
-                            android:background="@android:color/transparent"
-                            android:text="@string/proxy_test"
-                            android:textAllCaps="false"
-                            android:textColor="@color/ios_blue"
-                            android:textSize="14sp"
-                            android:fontFamily="sans-serif-medium" />
-                    </LinearLayout>
-                </LinearLayout>
+                <ImageButton
+                    android:id="@+id/btn_send"
+                    android:layout_width="42dp"
+                    android:layout_height="42dp"
+                    android:layout_marginStart="8dp"
+                    android:background="@drawable/bg_ios_button_primary"
+                    android:src="@drawable/ic_send"
+                    android:tint="#FFFFFF"
+                    android:scaleType="centerInside"
+                    android:contentDescription="@string/assistant_send" />
             </LinearLayout>
-        </ScrollView>
+        </LinearLayout>
     </FrameLayout>
 </FrameLayout>
